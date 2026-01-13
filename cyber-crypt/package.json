@@ -1,0 +1,54 @@
+{
+    "name": "cyber-crypt",
+    "version": "1.0.0",
+    "description": "Premium Secret Disk Manager",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "dist": "electron-builder"
+    },
+    "keywords": [],
+    "author": "CyberPRO",
+    "license": "ISC",
+    "devDependencies": {
+        "electron": "^28.2.0",
+        "electron-builder": "^24.9.1"
+    },
+    "dependencies": {
+        "fs-extra": "^11.2.0"
+    },
+    "build": {
+        "appId": "com.cyber.crypt",
+        "productName": "CyberCrypt PRO",
+        "icon": "build/icon.png",
+        "directories": {
+            "output": "dist"
+        },
+        "extraResources": [
+            "scripts/**"
+        ],
+        "win": {
+            "target": [
+                "nsis",
+                "portable"
+            ],
+            "requestedExecutionLevel": "requireAdministrator"
+        },
+        "nsis": {
+            "oneClick": true,
+            "uninstallDisplayName": "CyberCrypt PRO",
+            "createDesktopShortcut": true
+        },
+        "publish": [
+            {
+                "provider": "github",
+                "owner": "udadadad",
+                "repo": "cyber-crypt"
+            }
+        ]
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/udadadad/cyber-crypt.git"
+    }
+}

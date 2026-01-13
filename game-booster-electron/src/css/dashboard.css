@@ -1,0 +1,256 @@
+.layout {
+    display: flex;
+    flex: 1;
+    padding: 20px;
+    gap: 20px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background: #000;
+    border-right: 1px solid #222;
+    position: relative;
+    border-radius: 8px;
+}
+
+.license-footer {
+    margin-top: auto;
+    padding: 20px;
+    border-top: 1px solid #111;
+    font-size: 0.7em;
+    letter-spacing: 1px;
+}
+
+.license-footer .label {
+    color: #444;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.license-footer .value {
+    color: #fff;
+    font-weight: bold;
+}
+
+.brand {
+    font-size: 1.5em;
+    /* Smaller, cleaner */
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 40px;
+    letter-spacing: -1px;
+}
+
+.nav-links {
+    list-style: none;
+    padding: 0;
+}
+
+.nav-links li {
+    padding: 12px 10px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.nav-links li:hover {
+    color: #fff;
+}
+
+.nav-links li.active {
+    color: #fff;
+    background: #1a1a1a;
+    border-radius: 4px;
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Important for inner scrolling */
+}
+
+/* Tab Logic */
+.tab-content {
+    display: flex;
+    /* Will be toggled */
+    flex-direction: column;
+    height: 100%;
+    gap: 20px;
+}
+
+.top-bar {
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
+    border-bottom: 1px solid #1a1a1a;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+h1 {
+    font-size: 1.2em;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+    padding-bottom: 20px;
+}
+
+.card {
+    padding: 20px;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+}
+
+.chart-container {
+    position: relative;
+    flex: 1;
+    min-height: 120px;
+}
+
+h3 {
+    margin-top: 0;
+    font-size: 12px;
+    color: #666;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.metric-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 5px 0;
+    color: #fff;
+}
+
+.console {
+    grid-column: 1 / -1;
+    padding: 20px;
+    font-family: 'Consolas', monospace;
+    overflow-y: auto;
+    height: 200px;
+    background: #050505;
+    font-size: 13px;
+    color: #888;
+}
+
+#log-output {
+    line-height: 1.6;
+}
+
+/* Config & Checkboxes */
+.scroll-container {
+    padding: 0 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.config-section {
+    padding: 20px;
+    margin-bottom: 20px;
+    background: #0a0a0a;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    cursor: pointer;
+}
+
+.checkbox-row input {
+    width: auto;
+    margin-right: 15px;
+}
+
+.checkbox-row span {
+    font-size: 14px;
+}
+
+/* Tables */
+.table-container {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    padding: 15px;
+    font-size: 12px;
+    color: #666;
+    border-bottom: 1px solid #333;
+}
+
+td {
+    padding: 15px;
+    border-bottom: 1px solid #1a1a1a;
+    font-size: 14px;
+}
+
+/* Games Grid */
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.game-card {
+    background: #0a0a0a;
+    border: 1px solid #333;
+    padding: 15px;
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.game-card:hover {
+    border-color: #fff;
+    background: #111;
+}
+
+/* Deep Optimization Styling */
+.beast-mode {
+    border: 1px solid #444;
+    background: linear-gradient(180deg, #111 0%, #0a0a0a 100%);
+}
+
+.beast-mode h3 {
+    color: #fff;
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+}
+
+.services-grid .checkbox-row {
+    padding: 5px 0;
+}

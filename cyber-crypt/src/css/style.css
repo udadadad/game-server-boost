@@ -1,0 +1,226 @@
+:root {
+    --bg-dark: #0a0a0a;
+    --card-bg: #111111;
+    --emerald: #50fa7b;
+    --violet: #bd93f9;
+    --danger: #ff5555;
+    --text-dim: #999;
+    --text-bright: #eee;
+    --card-border: rgba(80, 250, 123, 0.2);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+    user-select: none;
+}
+
+body {
+    background: var(--bg-dark);
+    color: var(--text-bright);
+    overflow: hidden;
+    height: 100vh;
+}
+
+/* Titlebar */
+.titlebar {
+    height: 32px;
+    background: #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+    -webkit-app-region: drag;
+    border-bottom: 1px solid #222;
+}
+
+.window-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--emerald);
+    letter-spacing: 1px;
+}
+
+.window-controls {
+    display: flex;
+    gap: 15px;
+    -webkit-app-region: no-drag;
+}
+
+.control-btn {
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-dim);
+    transition: 0.2s;
+}
+
+.control-btn:hover {
+    color: var(--text-bright);
+}
+
+.control-btn.close:hover {
+    color: var(--danger);
+}
+
+/* Main UI */
+.container {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+/* Status Section */
+.status-section {
+    text-align: center;
+}
+
+#vault-core {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 20px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.5s;
+}
+
+.inner-diamond {
+    width: 60px;
+    height: 60px;
+    background: transparent;
+    border: 2px solid var(--emerald);
+    transform: rotate(45deg);
+    box-shadow: 0 0 20px var(--card-border);
+    transition: 0.5s;
+}
+
+.vault-locked .inner-diamond {
+    border-color: var(--violet);
+    box-shadow: 0 0 20px rgba(189, 147, 249, 0.2);
+}
+
+.vault-unlocked .inner-diamond {
+    background: var(--emerald);
+    box-shadow: 0 0 40px var(--emerald);
+}
+
+#vault-status {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    margin-bottom: 5px;
+}
+
+#vault-info {
+    color: var(--text-dim);
+    font-size: 13px;
+}
+
+/* Action Panel */
+.action-panel {
+    width: 100%;
+    max-width: 400px;
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+.input-group input {
+    width: 100%;
+    background: #000;
+    border: 1px solid #333;
+    padding: 12px;
+    color: var(--text-bright);
+    font-family: 'Orbitron', sans-serif;
+    border-radius: 6px;
+    outline: none;
+    transition: 0.3s;
+}
+
+.input-group input:focus {
+    border-color: var(--emerald);
+}
+
+.primary-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--emerald), #2ecc71);
+    color: #000;
+    border: none;
+    padding: 16px;
+    font-weight: 800;
+    font-family: 'Orbitron', sans-serif;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: 1px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(80, 250, 123, 0.2);
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px var(--emerald);
+    filter: brightness(1.1);
+}
+
+.primary-btn:active {
+    transform: translateY(1px);
+}
+
+.danger-btn {
+    width: 100%;
+    background: rgba(255, 85, 85, 0.1);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    padding: 16px;
+    font-weight: 800;
+    font-family: 'Orbitron', sans-serif;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+}
+
+.danger-btn:hover {
+    background: var(--danger);
+    color: #000;
+    box-shadow: 0 0 30px var(--danger);
+}
+
+/* Console */
+.console {
+    width: 100%;
+    background: #000;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #222;
+    height: 80px;
+    overflow-y: auto;
+}
+
+#log-window {
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.6;
+}

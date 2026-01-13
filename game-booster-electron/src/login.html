@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Game Booster - Login</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+
+<body>
+    <div class="titlebar">
+        <div class="window-title">CyberBoost - Terminal Access</div>
+        <div class="window-controls">
+            <div class="control-btn" onclick="window.api.send('window-minimize')">−</div>
+            <div class="control-btn close" onclick="window.api.send('window-close')">×</div>
+        </div>
+    </div>
+    <div class="login-container glass-panel">
+        <div class="logo-area">
+            <h1>CYBER<span class="highlight">BOOST</span></h1>
+            <p>Ultimate Performance Engine</p>
+        </div>
+
+        <div id="login-form">
+            <h2>ACCESS TERMINAL</h2>
+            <div class="input-group">
+                <input type="text" id="login-username" placeholder="USERNAME">
+            </div>
+            <div class="input-group">
+                <input type="password" id="login-password" placeholder="PASSWORD">
+            </div>
+            <button onclick="auth.login()">INITIALIZE</button>
+            <p class="switch-msg">No ID? <a href="#" onclick="showRegister()">Register Identity</a></p>
+        </div>
+
+        <div id="register-form" style="display: none;">
+            <h2>NEW IDENTITY</h2>
+            <div class="input-group">
+                <input type="text" id="reg-username" placeholder="NEW USERNAME">
+            </div>
+            <div class="input-group">
+                <input type="password" id="reg-password" placeholder="PASSWORD">
+            </div>
+            <div class="input-group">
+                <input type="password" id="reg-confirm" placeholder="CONFIRM PASSWORD">
+            </div>
+            <button onclick="auth.register()" style="border-color: #00e5ff; color: #00e5ff;">CREATE ID</button>
+            <p class="switch-msg">Has ID? <a href="#" onclick="showLogin()">Access Terminal</a></p>
+        </div>
+
+        <div id="activation-form" style="display: none;">
+            <h2>ACTIVATE LICENSE</h2>
+            <p id="activation-msg" style="color: #888; font-size: 0.8em; margin-bottom: 20px;">Your access has expired
+                or is not yet active.</p>
+            <div class="input-group">
+                <input type="text" id="activation-key" placeholder="ENTER ACCESS CODE">
+            </div>
+            <button onclick="auth.activate()" style="border-color: #bf00ff; color: #bf00ff;">ACTIVATE NOW</button>
+            <p class="switch-msg"><a href="#" onclick="showLogin()">Back to Login</a></p>
+        </div>
+
+        <div id="error-msg" class="error"></div>
+    </div>
+    <script src="js/auth.js"></script>
+    <script>
+        function showRegister() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+            document.getElementById('error-msg').innerText = '';
+        }
+        function showLogin() {
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('activation-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('error-msg').innerText = '';
+        }
+        function showActivation(reason) {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('activation-form').style.display = 'block';
+            document.getElementById('error-msg').innerText = '';
+
+            const msg = document.getElementById('activation-msg');
+            if (reason === 'expired') {
+                msg.innerText = "YOUR ACCESS HAS EXPIRED.";
+                msg.style.color = "#ff4444";
+            } else {
+                msg.innerText = "IDENTITY VERIFIED. ACTIVATION REQUIRED.";
+                msg.style.color = "#888";
+            }
+        }
+
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('mode') === 'activation') {
+                showActivation(params.get('reason'));
+            }
+        }
+    </script>
+</body>
+
+</html>

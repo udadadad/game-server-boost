@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberSpoofer PRO</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="window-frame">
+        <div class="title-bar">
+            <div class="drag-region">CyberSpoofer <span>PRO</span></div>
+            <div class="window-controls">
+                <button onclick="window.api.send('window-controls', 'minimize')">−</button>
+                <button onclick="window.api.send('window-controls', 'close')" class="close">×</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="radar-container">
+                <div class="radar">
+                    <div class="radar-sweep"></div>
+                </div>
+                <button id="spoof-btn" class="spoof-main-btn">SPOOF SYSTEM</button>
+            </div>
+
+            <div class="status-grid">
+                <div class="status-card">
+                    <div class="status-label">HWID STATUS</div>
+                    <div id="hwid-status" class="status-value secure">PROTECTED</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-label">MAC ADDRESS</div>
+                    <div id="mac-status" class="status-value">RANDOMIZED</div>
+                </div>
+            </div>
+
+            <div class="logger">
+                <div class="log-title">SYSTEM LOG</div>
+                <div id="log-output" class="log-content">
+                    > CyberSpoofer PRO Initialized...
+                    > Waiting for user action...
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/ui.js"></script>
+</body>
+
+</html>

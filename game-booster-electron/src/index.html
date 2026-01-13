@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Game Booster Pro</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="titlebar">
+        <div class="window-title">Booster Pro - System Control</div>
+        <div class="window-controls">
+            <div class="control-btn" onclick="window.api.send('window-minimize')">−</div>
+            <div class="control-btn" onclick="window.api.send('window-maximize')">▢</div>
+            <div class="control-btn close" onclick="window.api.send('window-close')">×</div>
+        </div>
+    </div>
+    <div class="layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="brand">BOOSTER<span style="font-weight:300; color:#666">PRO</span></div>
+            <ul class="nav-links">
+                <li class="active" onclick="switchTab('dashboard', this)" data-i18n="nav_dashboard">Dashboard</li>
+                <li onclick="switchTab('boost', this)" data-i18n="nav_optimize">Optimize</li>
+                <li onclick="switchTab('processes', this)" data-i18n="nav_processes">Processes</li>
+                <li onclick="switchTab('games', this)" data-i18n="nav_games">Games</li>
+                <li onclick="switchTab('settings', this)" data-i18n="nav_settings">Settings</li>
+            </ul>
+            <div id="license-info" class="license-footer">
+                <span class="label">License:</span>
+                <span id="expiry-date" class="value">Loading...</span>
+            </div>
+            <div class="status-indicator">
+                Status: <span id="status-text" style="color:#00ff00">Ready</span>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="content">
+            <!-- DASHBOARD TAB -->
+            <div id="tab-dashboard" class="tab-content active">
+                <header class="top-bar glass-panel">
+                    <h1>System Overview</h1>
+                    <div style="display:flex; gap:10px">
+                        <button id="restore-btn" style="border-color:#666; color:#999">Restore Defaults</button>
+                        <button id="boost-btn">Enable Optimization</button>
+                    </div>
+                </header>
+
+                <div class="grid-container">
+                    <div class="card glass-panel">
+                        <h3>CPU</h3>
+                        <div class="metric-value" id="cpu-val">0%</div>
+                        <div class="chart-container">
+                            <canvas id="cpuChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card glass-panel">
+                        <h3>RAM</h3>
+                        <div class="metric-value" id="ram-val">0 GB</div>
+                        <div class="chart-container">
+                            <canvas id="ramChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card glass-panel">
+                        <h3>GPU</h3>
+                        <div class="metric-value" id="gpu-val">0%</div>
+                        <div class="chart-container">
+                            <canvas id="gpuChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card glass-panel">
+                        <h3>Info</h3>
+                        <div class="info-row">
+                            <span>OS:</span> <span id="os-info">Scanning...</span>
+                        </div>
+                        <div class="info-row">
+                            <span>CPU:</span> <span id="cpu-info">Scanning...</span>
+                        </div>
+                        <div class="info-row">
+                            <span>GPU:</span> <span id="gpu-info">Scanning...</span>
+                        </div>
+                    </div>
+
+                    <div class="console glass-panel">
+                        <h3>Event Log</h3>
+                        <div id="log-output">
+                            > System Initialized.<br>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOOST CONFIG TAB -->
+            <div id="tab-boost" class="tab-content" style="display:none">
+                <header class="top-bar glass-panel">
+                    <h1 data-i18n="nav_optimize">Boost Configuration</h1>
+                </header>
+                <div class="scroll-container">
+                    <div class="config-section glass-panel">
+                        <h3 data-i18n="section_power">Power & CPU</h3>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-power" checked>
+                            <span data-i18n="opt_power">Enable Ultimate Power Plan</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-priority-game" checked>
+                            <span data-i18n="opt_priority">High Priority for Active Game</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-cores" checked>
+                            <span data-i18n="opt_cores">Unpark CPU Cores</span>
+                        </label>
+                    </div>
+
+                    <div class="config-section glass-panel">
+                        <h3 data-i18n="section_network">Network</h3>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-dns" checked>
+                            <span data-i18n="opt_dns">Flush DNS Cache</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-tcp" checked>
+                            <span data-i18n="opt_tcp">Optimize TCP/IP</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-nagel" checked>
+                            <span data-i18n="opt_nagle">Disable Nagle Algorithm (Lower Ping)</span>
+                        </label>
+                    </div>
+
+                    <div class="config-section glass-panel">
+                        <h3 data-i18n="section_system">System</h3>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-temp" checked>
+                            <span data-i18n="opt_temp">Clear Temporary Files</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-ram" checked>
+                            <span data-i18n="opt_ram">Intelligent RAM Cleaner</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-extreme">
+                            <span data-i18n="opt_extreme">Extreme Service Cleaner</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-turbo">
+                            <span data-i18n="opt_turbo">Turbo Mode (Defender Suspend)</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-anim" checked>
+                            <span data-i18n="opt_anim">Disable Windows Animations</span>
+                        </label>
+                    </div>
+
+                    <div class="config-section glass-panel beast-mode">
+                        <h3><span data-i18n="section_deep">Deep Optimization</span> <span
+                                class="badge-new">+20-30%</span></h3>
+                        <p style="color:#888; font-size:12px; margin-bottom:15px;" data-i18n="deep_desc">Aggressive
+                            system tweaks. Some may require reboot.</p>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-telemetry">
+                            <span data-i18n="opt_telemetry">Privacy & Telemetry</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-junk">
+                            <span data-i18n="opt_junk">Full Junk Cleaner</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-gpu">
+                            <span data-i18n="opt_gpu">Gpu Tweaks</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-timer">
+                            <span data-i18n="opt_timer">Timer Resolution</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-visual">
+                            <span data-i18n="opt_visual">Disable Visual Effects</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-memory">
+                            <span data-i18n="opt_memory">Memory Optimization</span>
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="chk-priority">
+                            <span data-i18n="opt_process_priority">Process Priority</span>
+                        </label>
+                    </div>
+
+                    <div class="config-section glass-panel">
+                        <h3><span data-i18n="section_services">Services Guard</span> <span class="badge-new">PRO</span>
+                        </h3>
+                        <div class="services-grid">
+                            <label class="checkbox-row"><input type="checkbox"
+                                    id="svc-BDESVC"><span>BDESVC</span></label>
+                            <label class="checkbox-row"><input type="checkbox"
+                                    id="svc-bthserv"><span>bthserv</span></label>
+                            <label class="checkbox-row"><input type="checkbox" id="svc-DPS"><span>DPS</span></label>
+                            <label class="checkbox-row"><input type="checkbox" id="svc-FontCache"
+                                    checked><span>FontCache</span></label>
+                            <label class="checkbox-row"><input type="checkbox"
+                                    id="svc-hidserv"><span>hidserv</span></label>
+                            <label class="checkbox-row"><input type="checkbox"
+                                    id="svc-iphlpsvc"><span>iphlpsvc</span></label>
+                            <label class="checkbox-row"><input type="checkbox" id="svc-Spooler"
+                                    checked><span>Spooler</span></label>
+                            <label class="checkbox-row"><input type="checkbox"
+                                    id="svc-SSDPSRV"><span>SSDPSRV</span></label>
+                            <label class="checkbox-row"><input type="checkbox" id="svc-StiSvc"
+                                    checked><span>StiSvc</span></label>
+                            <label class="checkbox-row"><input type="checkbox" id="svc-StorSvc"
+                                    checked><span>StorSvc</span></label>
+                            <label class="checkbox-row"><input type="checkbox" id="svc-SysMain"
+                                    checked><span>SysMain</span></label>
+                            <label class="checkbox-row"><input type="checkbox"
+                                    id="svc-Themes"><span>Themes</span></label>
+                            <label class="checkbox-row"><input type="checkbox" id="svc-VaultSvc"
+                                    checked><span>VaultSvc</span></label>
+                            <label class="checkbox-row"><input type="checkbox" id="svc-WdiSystemHost"
+                                    checked><span>WdiSystemHost</span></label>
+                            <label class="checkbox-row"><input type="checkbox" id="svc-WSearch"
+                                    checked><span>WSearch</span></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROCESSES TAB -->
+            <div id="tab-processes" class="tab-content" style="display:none">
+                <header class="top-bar glass-panel">
+                    <h1>Process Manager</h1>
+                    <button onclick="refreshProcesses()">Refresh</button>
+                    <button onclick="killSelected()" style="border-color:#ff3333; color:#ff3333">End Selected</button>
+                </header>
+                <div class="table-container glass-panel">
+                    <table id="proc-table">
+                        <thead>
+                            <tr>
+                                <th>NAME</th>
+                                <th>PID</th>
+                                <th>MEM</th>
+                                <th>CPU</th>
+                                <th>ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proc-list">
+                            <!-- Populated JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- GAMES TAB -->
+            <div id="tab-games" class="tab-content" style="display:none">
+                <header class="top-bar glass-panel">
+                    <h1>Game Library</h1>
+                    <button onclick="scanGames()">Scan Games</button>
+                </header>
+                <div class="games-grid" id="games-grid">
+                    <!-- Populated JS -->
+                    <div class="empty-state">No games detected. Click Scan.</div>
+                </div>
+            </div>
+
+            <!-- SETTINGS TAB -->
+            <div id="tab-settings" class="tab-content" style="display:none">
+                <header class="top-bar glass-panel">
+                    <h1>Preferences</h1>
+                    <button onclick="saveSettings()">Save Changes</button>
+                </header>
+                <div class="config-section glass-panel">
+                    <h3 data-i18n="section_app">Application</h3>
+                    <div class="info-row">
+                        <span data-i18n="sett_lang">Language:</span><span class="badge-new">NEW</span>
+                        <select id="sett-lang" onchange="changeLanguage(this.value)"
+                            style="background:#222; color:#fff; border:1px solid #444; padding:2px 5px; margin-left:10px;">
+                            <option value="en">English</option>
+                            <option value="ru">Русский</option>
+                            <option value="uk">Українська</option>
+                        </select>
+                    </div>
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="sett-startup">
+                        <span data-i18n="sett_startup">Run at Startup</span>
+                    </label>
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="sett-tray" checked>
+                        <span data-i18n="sett_tray">Minimize to Tray</span>
+                    </label>
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="sett-autoboost">
+                        <span style="color:#bf00ff" data-i18n="sett_autoboost">Enable AUTO-BOOST (Real-time
+                            Detection)</span>
+                    </label>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    <script src="js/app.js"></script>
+</body>
+
+</html>

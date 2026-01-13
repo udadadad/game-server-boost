@@ -1,0 +1,48 @@
+{
+  "name": "cyber-spoofer",
+  "version": "1.0.0",
+  "description": "Premium HWID Spoofer",
+  "main": "main.js",
+  "author": "udadadad",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/udadadad/cyber-spoofer.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.cyber.spoofer",
+    "productName": "CyberSpoofer",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": true,
+      "uninstallDisplayName": "CyberSpoofer PRO",
+      "createDesktopShortcut": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "udadadad",
+        "repo": "cyber-spoofer"
+      }
+    ]
+  },
+  "dependencies": {
+    "fs-extra": "^11.1.1"
+  },
+  "devDependencies": {
+    "electron": "^25.3.0",
+    "electron-builder": "^24.13.3"
+  }
+}

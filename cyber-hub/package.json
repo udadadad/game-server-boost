@@ -1,0 +1,52 @@
+{
+    "name": "cyber-hub",
+    "version": "1.0.0",
+    "description": "Unified App Launcher for CyberBoost Ecosystem",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "dist": "electron-builder"
+    },
+    "keywords": [],
+    "author": "Ajanokoji",
+    "license": "ISC",
+    "dependencies": {
+        "axios": "^1.6.2",
+        "electron-dl": "^3.5.0",
+        "fs-extra": "^11.2.0"
+    },
+    "devDependencies": {
+        "electron": "^27.1.2",
+        "electron-builder": "^24.9.1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/udadadad/cyber-hub.git"
+    },
+    "build": {
+        "productName": "CyberHub PRO",
+        "icon": "build/icon.png",
+        "directories": {
+            "output": "dist"
+        },
+        "win": {
+            "icon": "build/icon.png",
+            "requestedExecutionLevel": "requireAdministrator",
+            "target": [
+                "nsis"
+            ]
+        },
+        "nsis": {
+            "oneClick": true,
+            "uninstallDisplayName": "CyberHub PRO",
+            "createDesktopShortcut": true
+        },
+        "publish": [
+            {
+                "provider": "github",
+                "owner": "udadadad",
+                "repo": "cyber-hub"
+            }
+        ]
+    }
+}

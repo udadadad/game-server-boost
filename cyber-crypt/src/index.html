@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberCrypt PRO</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="titlebar">
+        <div class="window-title">CyberCrypt PRO</div>
+        <div class="window-controls">
+            <div class="control-btn" onclick="api.send('window-controls', 'minimize')">−</div>
+            <div class="control-btn close" onclick="api.send('window-controls', 'close')">×</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Status Indicator -->
+        <div class="status-section">
+            <div id="vault-core" class="vault-locked">
+                <div class="inner-diamond"></div>
+                <div class="sparkles"></div>
+            </div>
+            <div id="vault-status">VAULT LOCKED</div>
+            <div id="vault-info">Encrypted storage is hidden from system.</div>
+        </div>
+
+        <!-- Action Panel -->
+        <div class="action-panel">
+            <div id="setup-panel">
+                <div class="input-group">
+                    <label>VAULT SIZE (GB)</label>
+                    <input type="number" id="disk-size" value="10" min="1" max="100">
+                </div>
+                <div class="input-group">
+                    <label>ENCRYPTION CODE</label>
+                    <input type="password" id="vault-pass" placeholder="••••••••">
+                </div>
+                <button id="btn-create" class="primary-btn">CREATE NEW VAULT</button>
+            </div>
+
+            <div id="unlock-panel">
+                <button id="btn-unlock" class="primary-btn">UNLOCK VAULT</button>
+                <div id="btn-delete-unlock" class="delete-trigger">DELETE PERMANENTLY</div>
+            </div>
+
+            <div id="lock-panel" style="display:none">
+                <button id="btn-lock" class="danger-btn">LOCK & HIDE VAULT</button>
+                <div id="btn-delete-lock" class="delete-trigger">DELETE PERMANENTLY</div>
+            </div>
+        </div>
+
+        <!-- Console Log -->
+        <div class="console">
+            <div id="log-window">System initialized... Device ready.</div>
+        </div>
+    </div>
+
+    <script src="js/ui.js"></script>
+</body>
+
+</html>

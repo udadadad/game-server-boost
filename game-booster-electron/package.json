@@ -1,0 +1,56 @@
+{
+  "name": "game-booster-electron",
+  "version": "1.3.0",
+  "description": "Premium Game Booster with Advanced Optimization",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "build": "electron-builder --dir"
+  },
+  "keywords": [],
+  "author": "Antigravity",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.booster.pro",
+    "productName": "BoosterPRO",
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "udadadad",
+        "repo": "game-booster"
+      }
+    ],
+    "files": [
+      "**/*",
+      "!keys.json",
+      "!src/scripts/gen_keys.js",
+      "!server/**/*",
+      "!bot/**/*",
+      "!database.json",
+      "!users.json",
+      "!hashes.json"
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9",
+    "systeminformation": "^5.23.0",
+    "sudo-prompt": "^9.2.1"
+  }
+}

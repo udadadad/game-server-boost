@@ -1,0 +1,37 @@
+{
+    "apps": [
+        {
+            "id": "cyberboost",
+            "name": "CyberBoost PRO",
+            "description": "Ultimate Game Optimizer with Live Monitoring.",
+            "github": "udadadad/game-booster",
+            "exeName": "Setup",
+            "installPath": "Programs\\BoosterPRO\\BoosterPRO.exe",
+            "localVersion": "0.0.0",
+            "installed": false,
+            "path": ""
+        },
+        {
+            "id": "cyberspoofer",
+            "name": "CyberSpoofer PRO",
+            "description": "Advanced Hardware ID & MAC Address Spoofer.",
+            "github": "udadadad/cyber-spoofer",
+            "exeName": "CyberSpoofer.Setup",
+            "installPath": "Programs\\CyberSpoofer\\CyberSpoofer.exe",
+            "localVersion": "0.0.0",
+            "installed": false,
+            "path": ""
+        },
+        {
+            "id": "cybercrypt",
+            "name": "CyberCrypt PRO",
+            "description": "Hidden & Encrypted Secret Vault for your files.",
+            "github": "udadadad/cyber-crypt",
+            "exeName": "CyberCrypt.PRO.Setup",
+            "installPath": "Programs\\cyber-crypt\\CyberCrypt.exe",
+            "localVersion": "0.0.0",
+            "installed": false,
+            "path": ""
+        }
+    ]
+}
