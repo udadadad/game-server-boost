@@ -551,6 +551,7 @@ async function trackUser(ctx) {
     }
     saveAsync(SETTINGS_FILE, cache.settings);
 
+    let updated = false;
     if (!users.includes(userId)) {
         users.push(userId);
         updated = true;
