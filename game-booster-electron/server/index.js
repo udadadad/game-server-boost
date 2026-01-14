@@ -93,20 +93,67 @@ app.post('/login', (req, res) => {
 });
 
 app.post('/activate', (req, res) => {
-    // ... (existing activate code) ...
+    const { user, key } = req.body;
+    const db = getDB();
+    const keyIndex = db.keys.findIndex(k => k.code === key && k.active);
+
+    if (keyIndex === -1) {
+        return res.status(400).json({ success: false, message: "Invalid or already used key" });
+    }
+
+    const keyData = db.keys[keyIndex];
+    const duration = keyData.type; // e.g., "1Day", "LifeTime"
+    let expiryDate = null;
+
+    if (duration !== "LifeTime") {
+        const now = new Date();
+        if (duration === "1Hour") now.setHours(now.getHours() + 1);
+        else if (duration === "1Day") now.setDate(now.getDate() + 1);
+        else if (duration === "1Week") now.setDate(now.getDate() + 7);
+        else if (duration === "1Month") now.setMonth(now.getMonth() + 1);
+        expiryDate = now.toISOString();
+    } else {
+        expiryDate = "lifetime";
+    }
+
+    // Update user
+    if (!db.users[user]) {
+        db.users[user] = { pass: 'auto', expiry: null }; // Should already exist from register
+    }
+
+    db.users[user].expiry = expiryDate;
+    db.users[user].usedKey = key;
+
+    // Update key usage
+    keyData.uses++;
+    if (keyData.uses >= keyData.max_activations) {
+        keyData.active = false;
+    }
+
+    saveDB(db);
+    res.json({ success: true, expiry: expiryDate });
 });
 
-// ... (other routes) ...
-
-app.get('/admin/users', (req, res) => {
+app.get('/status/:user', (req, res) => {
+    const { user } = req.params;
     const db = getDB();
-    const users = Object.keys(db.users).map(name => ({
-        name,
-        expiry: db.users[name].expiry,
-        lastLogin: db.users[name].lastLogin,
-        ip: db.users[name].ip
-    }));
-    res.json(users);
+    const userData = db.users[user];
+
+    if (!userData || !userData.expiry) {
+        return res.json({ expiry: null });
+    }
+
+    // Verify key still exists
+    if (userData.usedKey) {
+        const keyExists = db.keys.find(k => k.code === userData.usedKey);
+        if (!keyExists) {
+            userData.expiry = null;
+            saveDB(db);
+            return res.json({ expiry: null });
+        }
+    }
+
+    res.json({ expiry: userData.expiry });
 });
 
 // --- Admin Routes ---

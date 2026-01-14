@@ -120,8 +120,13 @@ function saveAsync(file, data) {
 }
 
 function getSettings() { return cache.settings; }
-function saveUserLang(userId, lang) {
-    cache.settings[userId] = { lang };
+function saveUserLang(userId, lang, metadata = {}) {
+    cache.settings[userId] = {
+        lang,
+        ...cache.settings[userId], // keep old data
+        ...metadata,
+        lastSeen: new Date().toISOString()
+    };
     saveAsync(SETTINGS_FILE, cache.settings);
 }
 function getUserLang(userId) { return cache.settings[userId]?.lang || 'en'; }
@@ -172,7 +177,11 @@ bot.start((ctx) => {
 
 bot.action(/setlang_(.+)/, (ctx) => {
     const lang = ctx.match[1];
-    saveUserLang(ctx.from.id, lang);
+    saveUserLang(ctx.from.id, lang, {
+        username: ctx.from.username,
+        first_name: ctx.from.first_name,
+        last_name: ctx.from.last_name
+    });
     return showMainMenu(ctx, lang);
 });
 
@@ -207,27 +216,81 @@ bot.action('admin_stats', (ctx) => {
     const inv = getInventory();
     const settings = getSettings();
     const sales = getUsedKeys();
+    const lang = getUserLang(ctx.from.id);
 
     // Calculate Revenue
     const PRICES = { '1day': 50, '1week': 250, '1month': 700, 'lifetime': 3000 };
     const totalRev = sales.reduce((acc, sale) => acc + (PRICES[sale.cat] || 0), 0);
     const userCount = Object.keys(settings).length;
 
-    const stats = `🛡 *CyberBoost Admin Terminal*\n\n` +
-        `👥 *Total Users:* \`${userCount}\`\n` +
-        `💰 *Total Revenue:* \`${totalRev}\` Stars\n` +
-        `📦 *Total Sales:* \`${sales.length}\`\n\n` +
-        `*Live Inventory:*\n` +
+    const terminalL = {
+        'en': { title: '🛡 *CyberBoost Admin Terminal*', users: 'Total Users:', rev: 'Total Revenue:', sales: 'Total Sales:', inv: 'Live Inventory:', status: 'Status:', online: 'Online', refill: 'Refill Required', btn_users: '👥 View All Users', btn_back: '⬅️ Back to Shop' },
+        'ru': { title: '🛡 *Админ-Терминал CyberBoost*', users: 'Всего пользователей:', rev: 'Всего прибыли:', sales: 'Всего продаж:', inv: 'Склад ключей:', status: 'Статус:', online: 'В сети', refill: 'Нужно пополнение', btn_users: '👥 Список пользователей', btn_back: '⬅️ В магазин' },
+        'uk': { title: '🛡 *Адмін-Термінал CyberBoost*', users: 'Всього користувачів:', rev: 'Всього прибутку:', sales: 'Всього продажів:', inv: 'Склад ключів:', status: 'Статус:', online: 'В мережі', refill: 'Потрібне поповнення', btn_users: '👥 Список користувачів', btn_back: '⬅️ В магазин' }
+    };
+    const L = terminalL[lang] || terminalL['ru'];
+
+    const stats = `${L.title}\n\n` +
+        `👥 *${L.users}* \`${userCount}\`\n` +
+        `💰 *${L.rev}* \`${totalRev}\` Stars\n` +
+        `📦 *${L.sales}* \`${sales.length}\`\n\n` +
+        `*${L.inv}*\n` +
         `▫️ 1 Day: \`${inv['1day'].length}\` left\n` +
         `▫️ 1 Week: \`${inv['1week'].length}\` left\n` +
         `▫️ 1 Month: \`${inv['1month'].length}\` left\n` +
         `▫️ Lifetime: \`${inv['lifetime'].length}\` left\n\n` +
-        `*Status:* ${Object.values(inv).some(a => a.length > 0) ? "🟢 Online" : "🔴 Refill Required"}`;
+        `*${L.status}* ${Object.values(inv).some(a => a.length > 0) ? "🟢 " + L.online : "🔴 " + L.refill}`;
 
     ctx.editMessageText(stats, {
         parse_mode: 'MarkdownV2',
         ...Markup.inlineKeyboard([
-            [Markup.button.callback('⬅️ Back to Shop', 'back_to_main')]
+            [Markup.button.callback(L.btn_users, 'admin_view_users')],
+            [Markup.button.callback(L.btn_back, 'back_to_main')]
+        ])
+    });
+});
+
+bot.action('admin_view_users', async (ctx) => {
+    if (ctx.from.id !== ADMIN_ID) return;
+
+    const settings = getSettings();
+    const userIds = Object.keys(settings);
+    const lang = getUserLang(ctx.from.id);
+
+    const listL = {
+        'en': { title: '👥 *Telegram Bot Users*', none: '📭 No users found.', refresh: '🔄 Refresh', back: '⬅️ Back' },
+        'ru': { title: '👥 *Пользователи бота*', none: '📭 Пользователей пока нет.', refresh: '🔄 Обновить', back: '⬅️ Назад' },
+        'uk': { title: '👥 *Користувачі бота*', none: '📭 Користувачів поки немає.', refresh: '🔄 Оновити', back: '⬅️ Назад' }
+    };
+    const L = listL[lang] || listL['ru'];
+
+    if (userIds.length === 0) {
+        return ctx.editMessageText(L.none, Markup.inlineKeyboard([
+            [Markup.button.callback(L.back, 'admin_stats')]
+        ]));
+    }
+
+    let userListText = `${L.title} \\(${userIds.length}\\)\n\n`;
+
+    userIds.forEach((id, index) => {
+        const u = settings[id];
+        const name = escapeMarkdown(u.first_name || u.name || 'User');
+        const username = u.username ? ` @${escapeMarkdown(u.username)}` : '';
+        const userLang = u.lang ? ` \\[${u.lang.toUpperCase()}\\]` : '';
+
+        userListText += `${index + 1}\\. \`${id}\` \\- ${name}${username}${userLang}\n`;
+    });
+
+    // Split message if too long
+    if (userListText.length > 4000) {
+        userListText = userListText.substring(0, 3900) + "\n\\.\\.\\. and more users";
+    }
+
+    ctx.editMessageText(userListText, {
+        parse_mode: 'MarkdownV2',
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback(L.refresh, 'admin_view_users')],
+            [Markup.button.callback(L.back, 'admin_stats')]
         ])
     });
 });
@@ -472,16 +535,21 @@ async function trackUser(ctx) {
         // Server might be down, ignore
     }
 
-    // Auto-sync with cache.settings (which has all users who set a language)
-    const knownUsers = Object.keys(cache.settings).map(Number);
-    let updated = false;
+    // Auto-sync with cache.settings
+    const metadata = {
+        username: ctx.from.username,
+        first_name: ctx.from.first_name,
+        last_name: ctx.from.last_name
+    };
 
-    knownUsers.forEach(id => {
-        if (!users.includes(id)) {
-            users.push(id);
-            updated = true;
-        }
-    });
+    if (!cache.settings[userId]) {
+        // Provide default lang if they just joined
+        cache.settings[userId] = { lang: 'en', ...metadata };
+    } else {
+        // Update metadata
+        Object.assign(cache.settings[userId], metadata);
+    }
+    saveAsync(SETTINGS_FILE, cache.settings);
 
     if (!users.includes(userId)) {
         users.push(userId);
