@@ -109,6 +109,54 @@ app.get('/admin/users', (req, res) => {
     res.json(users);
 });
 
+// --- Admin Routes ---
+app.post('/admin/sync-bot-users', (req, res) => {
+    const { userId, username, first_name, last_name } = req.body;
+    const db = getDB();
+    if (!db.botUsers) db.botUsers = {};
+
+    db.botUsers[userId] = {
+        username: username || 'Unknown',
+        name: `${first_name || ''} ${last_name || ''}`.trim() || 'No Name',
+        lastSeen: new Date().toISOString()
+    };
+
+    saveDB(db);
+    res.json({ success: true });
+});
+
+app.get('/admin/bot-users', (req, res) => {
+    const db = getDB();
+    const users = Object.keys(db.botUsers || {}).map(id => ({
+        id,
+        ...db.botUsers[id]
+    }));
+    res.json(users);
+});
+
+app.post('/admin/login', (req, res) => {
+    const { pass } = req.body;
+    if (pass === ADMIN_PASSWORD) {
+        res.json({ success: true, token: 'admin-session-token' });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid Admin Password' });
+    }
+});
+
+app.get('/admin/stats', (req, res) => {
+    const db = getDB();
+    const stats = {
+        totalUsers: Object.keys(db.users).length,
+        totalKeys: db.keys.length,
+        totalActivations: db.keys.reduce((sum, k) => sum + k.uses, 0)
+    };
+    res.json(stats);
+});
+
+app.get('/admin/keys', (req, res) => {
+    res.json(getDB().keys);
+});
+
 app.post('/admin/generate-key', (req, res) => {
     const { type, maxActivations } = req.body;
     const db = getDB();

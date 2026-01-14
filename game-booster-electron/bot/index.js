@@ -455,9 +455,22 @@ bot.action('main_trial', async (ctx) => {
 // --- User Tracking for Broadcasts ---
 const USERS_LIST_FILE = path.join(__dirname, 'users_list.json');
 
-function trackUser(ctx) {
+async function trackUser(ctx) {
     const userId = ctx.from.id;
+    const username = ctx.from.username;
+    const first_name = ctx.from.first_name;
+    const last_name = ctx.from.last_name;
+
     let users = fs.existsSync(USERS_LIST_FILE) ? JSON.parse(fs.readFileSync(USERS_LIST_FILE, 'utf8')) : [];
+
+    // Sync with Server for Web Admin Panel
+    try {
+        await axios.post(`${SERVER_URL}/admin/sync-bot-users`, {
+            userId, username, first_name, last_name
+        });
+    } catch (e) {
+        // Server might be down, ignore
+    }
 
     // Auto-sync with cache.settings (which has all users who set a language)
     const knownUsers = Object.keys(cache.settings).map(Number);
