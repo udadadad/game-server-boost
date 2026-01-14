@@ -361,11 +361,30 @@
         </div>
 
         <div class="glass" style="padding: 20px; margin-top: 30px;">
-            <h2 class="section-title">REGISTERED USERS</h2>
+            <h2 class="section-title">TELEGRAM BOT USERS</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>USER ID</th>
+                        <th>USERNAME</th>
+                        <th>NAME</th>
+                        <th>LAST SEEN</th>
+                    </tr>
+                </thead>
+                <tbody id="bot-users-table">
+                    <!-- JS Populated -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="glass" style="padding: 20px; margin-top: 30px;">
+            <h2 class="section-title">REGISTERED USERS (APP)</h2>
             <table>
                 <thead>
                     <tr>
                         <th>USERNAME</th>
+                        <th>IP ADDRESS</th>
+                        <th>LAST LOGIN</th>
                         <th>EXPIRATION</th>
                         <th>STATUS</th>
                         <th>ACTION</th>
@@ -430,18 +449,22 @@
                 keysTable.innerHTML += row;
             });
 
-            // Fetch Users
+            // Fetch App Users
             const resUsers = await fetch('/admin/users');
             const users = await resUsers.json();
             const usersTable = document.getElementById('users-table');
             usersTable.innerHTML = '';
             users.forEach(u => {
                 const expiry = u.expiry === 'lifetime' ? 'NEVER' : (u.expiry ? new Date(u.expiry).toLocaleString() : 'NONE');
+                const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Never';
+                const ip = u.ip || 'Unknown';
                 const isExpired = u.expiry !== 'lifetime' && u.expiry && (new Date() > new Date(u.expiry));
                 const status = u.expiry ? (isExpired ? 'EXPIRED' : 'ACTIVE') : 'NO LICENSE';
                 const row = `
                     <tr>
-                        <td>${u.name}</td>
+                        <td style="font-weight: bold; color: #fff;">${u.name}</td>
+                        <td style="font-family: monospace; color: var(--accent);">${ip}</td>
+                        <td style="font-size: 11px; color: var(--text-dim);">${lastLogin}</td>
                         <td>${expiry}</td>
                         <td style="color: ${status === 'ACTIVE' ? '#00ff88' : '#ff3333'}">${status}</td>
                         <td>
@@ -451,6 +474,24 @@
                     </tr>
                 `;
                 usersTable.innerHTML += row;
+            });
+
+            // Fetch Bot Users
+            const resBot = await fetch('/admin/bot-users');
+            const botUsers = await resBot.json();
+            const botTable = document.getElementById('bot-users-table');
+            botTable.innerHTML = '';
+            botUsers.reverse().forEach(u => {
+                const lastSeen = new Date(u.lastSeen).toLocaleString();
+                const row = `
+                    <tr>
+                        <td style="font-family: monospace; color: var(--text-dim);">${u.id}</td>
+                        <td style="color: var(--accent);">@${u.username}</td>
+                        <td>${u.name}</td>
+                        <td style="font-size: 11px; color: var(--text-dim);">${lastSeen}</td>
+                    </tr>
+                `;
+                botTable.innerHTML += row;
             });
         }
 

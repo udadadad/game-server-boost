@@ -25,7 +25,7 @@ let isUserAuthenticated = false;
 let appLang = 'en'; // New global for localized tray
 let optimizationGuardInterval = null;
 let activeGuardedServices = [];
-const SERVER_URL = 'http://epikfight.duckdns.org:3000';
+const SERVER_URL = 'https://game-server-boost.onrender.com';
 
 try {
     const CURRENT_SECURITY_V = 2;

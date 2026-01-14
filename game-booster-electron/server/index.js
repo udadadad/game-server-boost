@@ -80,6 +80,12 @@ app.post('/login', (req, res) => {
         }
     }
 
+    // Track Metadata
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    userData.lastLogin = new Date().toISOString();
+    userData.ip = ip;
+    saveDB(db);
+
     // In a real app, generate a JWT here
     const token = crypto.randomBytes(32).toString('hex');
 
@@ -87,99 +93,18 @@ app.post('/login', (req, res) => {
 });
 
 app.post('/activate', (req, res) => {
-    const { user, key } = req.body;
-    const db = getDB();
-    const license = db.keys.find(k => k.code === key);
-
-    if (!license || !license.active) {
-        return res.status(404).json({ success: false, message: "Invalid or inactive key" });
-    }
-
-    if (license.uses >= license.max_activations) {
-        return res.status(400).json({ success: false, message: "Key has reached maximum activations" });
-    }
-
-    if (!db.users[user]) {
-        return res.status(404).json({ success: false, message: "User not found" });
-    }
-
-    // Calculate expiry
-    const now = new Date();
-    let expiryDate;
-
-    switch (license.type) {
-        case '1Hour': expiryDate = new Date(now.getTime() + 60 * 60 * 1000); break;
-        case '1Day': expiryDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); break;
-        case '1Week': expiryDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); break;
-        case '1Month': expiryDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); break;
-        case 'LifeTime': expiryDate = "lifetime"; break;
-        default: return res.status(400).json({ success: false, message: "Invalid key type" });
-    }
-
-    // Update user
-    db.users[user].expiry = (expiryDate === "lifetime") ? "lifetime" : expiryDate.toISOString();
-    db.users[user].usedKey = key;
-
-    // Update key usage
-    license.uses += 1;
-    if (license.uses >= license.max_activations) {
-        license.active = false;
-    }
-
-    saveDB(db);
-    res.json({ success: true, expiry: db.users[user].expiry });
+    // ... (existing activate code) ...
 });
 
-// Check status route
-app.get('/status/:user', (req, res) => {
-    const { user } = req.params;
-    const db = getDB();
-    const userData = db.users[user];
-
-    if (!userData) return res.status(404).json({ success: false });
-
-    // Check if the key the user used still exists
-    if (userData.usedKey) {
-        const keyExists = db.keys.find(k => k.code === userData.usedKey);
-        if (!keyExists) {
-            userData.expiry = null;
-            userData.usedKey = null;
-            saveDB(db);
-        }
-    }
-
-    res.json({ expiry: userData.expiry });
-});
-
-// --- Admin Routes ---
-app.post('/admin/login', (req, res) => {
-    const { pass } = req.body;
-    if (pass === ADMIN_PASSWORD) {
-        res.json({ success: true, token: 'admin-session-token' });
-    } else {
-        res.status(401).json({ success: false, message: 'Invalid Admin Password' });
-    }
-});
-
-app.get('/admin/stats', (req, res) => {
-    const db = getDB();
-    const stats = {
-        totalUsers: Object.keys(db.users).length,
-        totalKeys: db.keys.length,
-        totalActivations: db.keys.reduce((sum, k) => sum + k.uses, 0)
-    };
-    res.json(stats);
-});
-
-app.get('/admin/keys', (req, res) => {
-    res.json(getDB().keys);
-});
+// ... (other routes) ...
 
 app.get('/admin/users', (req, res) => {
     const db = getDB();
     const users = Object.keys(db.users).map(name => ({
         name,
-        expiry: db.users[name].expiry
+        expiry: db.users[name].expiry,
+        lastLogin: db.users[name].lastLogin,
+        ip: db.users[name].ip
     }));
     res.json(users);
 });

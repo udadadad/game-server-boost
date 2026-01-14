@@ -17,7 +17,7 @@ const USED_FILE = path.join(__dirname, 'used_keys.json');
 const SETTINGS_FILE = path.join(__dirname, 'bot_settings.json');
 const FILE_IDS_FILE = path.join(__dirname, 'file_ids.json');
 const TRIALS_FILE = path.join(__dirname, 'trials.json');
-const SERVER_URL = 'http://epikfight.duckdns.org:3000';
+const SERVER_URL = 'https://game-server-boost.onrender.com';
 
 // --- Admin Configuration ---
 // TO GET YOUR ID: Send /id to @userinfobot or similar bot
@@ -83,51 +83,82 @@ const TRANSLATIONS = {
         support_text: "🛠 *Преміум Підтримка*\nЄ питання? Наша команда готова допомогти\\.",
         out_of_stock: "На жаль\\, цей тариф зараз закінчився\\!",
         success_pay: "✅ *Оплата пройшла успішно\\!*\nВаш ключ:\n",
-        copy_msg: "_Скопіюйте та вставте в програму для активації\\._"
+        copy_msg: "_Скопіюйте та вставте в програму для активації\\._",
+        free_trial: "🎁 Пробний період (1 година)",
+        trial_claimed: "❌ *Помилка*\nВи вже отримували безкоштовний ключ\\.",
+        trial_success: "🎁 *Ваш безкоштовний ключ:*"
     }
 };
 
-// --- Database Helpers ---
-function getSettings() {
-    return fs.existsSync(SETTINGS_FILE) ? JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8')) : {};
+// --- Database Helpers (Optimized: In-Memory + Async Save) ---
+let cache = {
+    settings: {},
+    inventory: {},
+    used_keys: [],
+    file_ids: {},
+    trials: {}
+};
+
+function loadData() {
+    try {
+        if (fs.existsSync(SETTINGS_FILE)) cache.settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+        if (fs.existsSync(INV_FILE)) cache.inventory = JSON.parse(fs.readFileSync(INV_FILE, 'utf8'));
+        if (fs.existsSync(USED_FILE)) cache.used_keys = JSON.parse(fs.readFileSync(USED_FILE, 'utf8'));
+        if (fs.existsSync(FILE_IDS_FILE)) cache.file_ids = JSON.parse(fs.readFileSync(FILE_IDS_FILE, 'utf8'));
+        if (fs.existsSync(TRIALS_FILE)) cache.trials = JSON.parse(fs.readFileSync(TRIALS_FILE, 'utf8'));
+        console.log("Data loaded into memory.");
+    } catch (e) {
+        console.error("Failed to load data:", e);
+    }
+}
+loadData(); // Load on start
+
+function saveAsync(file, data) {
+    fs.writeFile(file, JSON.stringify(data, null, 2), (err) => {
+        if (err) console.error(`Failed to save ${file}:`, err);
+    });
 }
 
+function getSettings() { return cache.settings; }
 function saveUserLang(userId, lang) {
-    const settings = getSettings();
-    settings[userId] = { lang };
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+    cache.settings[userId] = { lang };
+    saveAsync(SETTINGS_FILE, cache.settings);
 }
+function getUserLang(userId) { return cache.settings[userId]?.lang || 'en'; }
 
-function getUserLang(userId) {
-    const settings = getSettings();
-    return settings[userId]?.lang || 'en';
-}
-
-function getInventory() {
-    return JSON.parse(fs.readFileSync(INV_FILE, 'utf8'));
-}
-
+function getInventory() { return cache.inventory; }
 function saveInventory(inv) {
-    fs.writeFileSync(INV_FILE, JSON.stringify(inv, null, 2));
+    cache.inventory = inv;
+    saveAsync(INV_FILE, cache.inventory);
 }
 
 function markKeyUsed(userId, cat, key) {
-    const used = fs.existsSync(USED_FILE) ? JSON.parse(fs.readFileSync(USED_FILE, 'utf8')) : [];
-    used.push({ userId, cat, key, date: new Date().toISOString() });
-    fs.writeFileSync(USED_FILE, JSON.stringify(used, null, 2));
+    cache.used_keys.push({ userId, cat, key, date: new Date().toISOString() });
+    saveAsync(USED_FILE, cache.used_keys);
 }
+function getUsedKeys() { return cache.used_keys; }
 
-function getFileIds() {
-    return fs.existsSync(FILE_IDS_FILE) ? JSON.parse(fs.readFileSync(FILE_IDS_FILE, 'utf8')) : {};
-}
-
+function getFileIds() { return cache.file_ids; }
 function saveFileId(type, fileId) {
-    const ids = getFileIds();
-    ids[type] = fileId;
-    fs.writeFileSync(FILE_IDS_FILE, JSON.stringify(ids, null, 2));
+    cache.file_ids[type] = fileId;
+    saveAsync(FILE_IDS_FILE, cache.file_ids);
+}
+
+function getTrials() { return cache.trials; }
+function saveTrial(userId, data) {
+    cache.trials[userId] = data;
+    saveAsync(TRIALS_FILE, cache.trials);
 }
 
 // --- Bot Logic ---
+bot.catch((err, ctx) => {
+    // Ignore "Message is not modified" error
+    if (err.description && err.description.includes('message is not modified')) {
+        return;
+    }
+    console.error(`Ooops, encountered an error for ${ctx.updateType}`, err);
+});
+
 bot.start((ctx) => {
     ctx.replyWithMarkdownV2(
         `🌐 *Please select your language / Выберите язык / Оберіть мову:*`,
@@ -149,15 +180,18 @@ function showMainMenu(ctx, lang) {
     const t = TRANSLATIONS[lang];
     const text = `${t.welcome}\n\n${t.select_option}`;
     const buttons = [
-        [Markup.button.callback(t.buy, 'main_buy')],
-        [Markup.button.callback(t.free_trial, 'main_trial')],
-        [Markup.button.callback(t.reviews, 'main_reviews'), Markup.button.callback(t.support, 'main_support')],
-        [Markup.button.callback(t.download, 'main_download')]
+        [Markup.button.callback(t.buy, 'main_buy'), Markup.button.callback(t.free_trial, 'main_trial')],
+        [Markup.button.callback(t.download, 'main_download')],
+        [Markup.button.callback(t.reviews, 'main_reviews'), Markup.button.callback(t.support, 'main_support')]
     ];
 
     // Add Admin button for authorized user
     if (ctx.from.id === ADMIN_ID) {
         buttons.push([Markup.button.callback('🛡 Admin Panel', 'admin_stats')]);
+    }
+
+    if (ctx.from.id === ADMIN_ID) {
+        buttons.push([Markup.button.callback('🎁 Create Giveaway', 'quick_abuse')]);
     }
 
     if (ctx.updateType === 'callback_query') {
@@ -172,7 +206,7 @@ bot.action('admin_stats', (ctx) => {
 
     const inv = getInventory();
     const settings = getSettings();
-    const sales = fs.existsSync(USED_FILE) ? JSON.parse(fs.readFileSync(USED_FILE, 'utf8')) : [];
+    const sales = getUsedKeys();
 
     // Calculate Revenue
     const PRICES = { '1day': 50, '1week': 250, '1month': 700, 'lifetime': 3000 };
@@ -391,7 +425,7 @@ bot.action('main_trial', async (ctx) => {
     const lang = getUserLang(userId);
     const t = TRANSLATIONS[lang];
 
-    const trials = fs.existsSync(TRIALS_FILE) ? JSON.parse(fs.readFileSync(TRIALS_FILE, 'utf8')) : {};
+    const trials = getTrials();
 
     if (trials[userId]) {
         return ctx.replyWithMarkdownV2(t.trial_claimed);
@@ -404,8 +438,7 @@ bot.action('main_trial', async (ctx) => {
             const key = res.data.key;
 
             // Mark as claimed
-            trials[userId] = { key, date: new Date().toISOString() };
-            fs.writeFileSync(TRIALS_FILE, JSON.stringify(trials, null, 2));
+            saveTrial(userId, { key, date: new Date().toISOString() });
 
             await ctx.replyWithMarkdownV2(
                 `${t.trial_success}\n\n\`${key}\`\n\n${t.copy_msg}`
@@ -417,6 +450,173 @@ bot.action('main_trial', async (ctx) => {
         console.error("Trial API Error:", e);
         ctx.reply('Error: License server unreachable.');
     }
+});
+
+// --- User Tracking for Broadcasts ---
+const USERS_LIST_FILE = path.join(__dirname, 'users_list.json');
+
+function trackUser(ctx) {
+    const userId = ctx.from.id;
+    let users = fs.existsSync(USERS_LIST_FILE) ? JSON.parse(fs.readFileSync(USERS_LIST_FILE, 'utf8')) : [];
+
+    // Auto-sync with cache.settings (which has all users who set a language)
+    const knownUsers = Object.keys(cache.settings).map(Number);
+    let updated = false;
+
+    knownUsers.forEach(id => {
+        if (!users.includes(id)) {
+            users.push(id);
+            updated = true;
+        }
+    });
+
+    if (!users.includes(userId)) {
+        users.push(userId);
+        updated = true;
+    }
+
+    if (updated) {
+        fs.writeFileSync(USERS_LIST_FILE, JSON.stringify(users));
+    }
+}
+
+bot.use((ctx, next) => {
+    if (ctx.from) trackUser(ctx);
+    return next();
+});
+
+// --- Interactive Giveaway Wizard ---
+const adminState = {}; // { userId: { step: 'NONE', data: {} } }
+
+function escapeMarkdown(text) {
+    if (!text) return '';
+    return text.toString().replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+}
+
+bot.action('quick_abuse', (ctx) => {
+    if (ctx.from.id !== ADMIN_ID) return;
+    adminState[ctx.from.id] = { step: 'DURATION', data: {} };
+    ctx.editMessageText("🎁 *Create Giveaway \\- Step 1*\nSelect Key Duration:", {
+        parse_mode: 'MarkdownV2',
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback('1 Hour', 'abuse_dur_1Hour'), Markup.button.callback('1 Day', 'abuse_dur_1Day')],
+            [Markup.button.callback('1 Week', 'abuse_dur_1Week'), Markup.button.callback('1 Month', 'abuse_dur_1Month')],
+            [Markup.button.callback('❌ Cancel', 'abuse_cancel')]
+        ])
+    });
+});
+
+bot.action(/abuse_dur_(.+)/, (ctx) => {
+    if (!adminState[ctx.from.id]) return;
+    adminState[ctx.from.id].data.duration = ctx.match[1];
+    adminState[ctx.from.id].step = 'ACTIVATIONS';
+
+    ctx.editMessageText(`✅ Selected: ${ctx.match[1].replace('-', '\\-')}\n\n*Step 2: Select Max Activations*`, {
+        parse_mode: 'MarkdownV2',
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback('100', 'abuse_max_100'), Markup.button.callback('1000', 'abuse_max_1000')],
+            [Markup.button.callback('10,000', 'abuse_max_10000'), Markup.button.callback('Unlimited (999k)', 'abuse_max_999999')],
+            [Markup.button.callback('❌ Cancel', 'abuse_cancel')]
+        ])
+    });
+});
+
+bot.action(/abuse_max_(.+)/, (ctx) => {
+    if (!adminState[ctx.from.id]) return;
+    adminState[ctx.from.id].data.activations = parseInt(ctx.match[1]);
+    adminState[ctx.from.id].step = 'LANGUAGE';
+
+    ctx.editMessageText(
+        `✅ Duration: ${adminState[ctx.from.id].data.duration.replace('-', '\\-')}\n` +
+        `✅ Activations: ${adminState[ctx.from.id].data.activations}\n\n` +
+        `*Step 3: Select Language for Headers*`,
+        {
+            parse_mode: 'MarkdownV2',
+            ...Markup.inlineKeyboard([
+                [Markup.button.callback('🇷🇺 Русский', 'abuse_lang_ru')],
+                [Markup.button.callback('🇺🇸 English', 'abuse_lang_en')],
+                [Markup.button.callback('🇺🇦 Українська', 'abuse_lang_uk')],
+                [Markup.button.callback('❌ Cancel', 'abuse_cancel')]
+            ])
+        }
+    );
+});
+
+bot.action(/abuse_lang_(.+)/, (ctx) => {
+    if (!adminState[ctx.from.id]) return;
+    adminState[ctx.from.id].data.lang = ctx.match[1];
+    adminState[ctx.from.id].step = 'MESSAGE';
+
+    ctx.editMessageText(
+        `✅ Duration: ${adminState[ctx.from.id].data.duration.replace('-', '\\-')}\n` +
+        `✅ Activations: ${adminState[ctx.from.id].data.activations}\n` +
+        `✅ UI Language: ${adminState[ctx.from.id].data.lang}\n\n` +
+        `*Step 4: Send the Broadcast Message*\n` +
+        `Reply with the text for the giveaway\\.`,
+        { parse_mode: 'MarkdownV2' }
+    );
+});
+
+bot.on('text', async (ctx, next) => {
+    const userId = ctx.from.id;
+    if (userId === ADMIN_ID && adminState[userId] && adminState[userId].step === 'MESSAGE') {
+        const msg = ctx.message.text;
+        const data = adminState[userId].data;
+
+        // Finalize
+        ctx.reply("⚙️ Generating Key & Broadcasting...");
+
+        try {
+            const res = await axios.post(`${SERVER_URL}/admin/generate-key`, {
+                type: data.duration,
+                maxActivations: data.activations
+            });
+
+            if (res.data.success) {
+                const key = res.data.key.code;
+
+                // Labels based on selected language
+                const labels = {
+                    'en': { max: '[max activations', key: 'key:', msg: 'message:' },
+                    'ru': { max: '[максимум активаций', key: 'ключ:', msg: 'сообщение:' },
+                    'uk': { max: '[максимум активацій', key: 'ключ:', msg: 'повідомлення:' }
+                };
+                const L = labels[data.lang] || labels['ru'];
+
+                const broadcastText =
+                    `${L.max} ${data.activations}]\n` +
+                    `${L.key} \`${key}\`\n` +
+                    `${L.msg}\n` +
+                    `${escapeMarkdown(msg)}`;
+
+                // Broadcast to EVERYONE
+                const users = fs.existsSync(USERS_LIST_FILE) ? JSON.parse(fs.readFileSync(USERS_LIST_FILE, 'utf8')) : [];
+                let sent = 0;
+
+                for (const u of users) {
+                    try {
+                        await bot.telegram.sendMessage(u, broadcastText, { parse_mode: 'MarkdownV2' });
+                        sent++;
+                    } catch (e) { }
+                }
+
+                ctx.reply(`✅ Done! Sent to ${sent} users.`);
+            }
+        } catch (e) {
+            ctx.reply("Error: " + e.message);
+        }
+
+        // Reset State
+        adminState[userId] = null;
+    } else {
+        next();
+    }
+});
+
+bot.action('abuse_cancel', (ctx) => {
+    adminState[ctx.from.id] = null;
+    ctx.deleteMessage();
+    ctx.reply("Giveaway creation cancelled.");
 });
 
 bot.launch().then(() => console.log('CyberBoost Shop Bot is LIVE!'));
