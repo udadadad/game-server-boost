@@ -1,159 +1,154 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+// --- MongoDB Setup ---
+require('dotenv').config();
+const mongoose = require('mongoose');
+const User = require('./models/User');
+const Key = require('./models/Key');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_PATH = path.join(__dirname, 'database.json');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
+const MONGO_URI = process.env.MONGO_URI;
+
+// Connect to MongoDB
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('MongoDB Connected'))
+    .catch(err => console.error('MongoDB Connection Error:', err));
 
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static('public')); // Serve admin panel from /public
-
-// Helper to read/write DB
-function getDB() {
-    if (!fs.existsSync(DB_PATH)) {
-        // Initialize if missing (Render ephemeral FS check)
-        const initialDB = { users: {}, keys: [] };
-        fs.writeFileSync(DB_PATH, JSON.stringify(initialDB));
-        return initialDB;
-    }
-    return JSON.parse(fs.readFileSync(DB_PATH));
-}
-function saveDB(db) {
-    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
-}
+app.use(express.static('public'));
 
 // Routes
-app.post('/register', (req, res) => {
+// Routes
+app.post('/register', async (req, res) => {
     const { user, pass } = req.body;
-    const db = getDB();
-
-    if (db.users[user]) {
-        return res.status(400).json({ success: false, message: "User already exists" });
+    try {
+        const existingUser = await User.findOne({ username: user });
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: "User already exists" });
+        }
+        const newUser = new User({ username: user, password: pass });
+        await newUser.save();
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
     }
-
-    db.users[user] = { pass, expiry: null };
-    saveDB(db);
-    res.json({ success: true });
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
     const { user, pass } = req.body;
-    const db = getDB();
-    const userData = db.users[user];
-
-    if (!userData || userData.pass !== pass) {
-        return res.status(401).json({ success: false, message: "Invalid credentials" });
-    }
-
-    let active = true;
-    let reason = null;
-
-    // Check if the key the user used still exists
-    if (userData.usedKey) {
-        const keyExists = db.keys.find(k => k.code === userData.usedKey);
-        if (!keyExists) {
-            // Key was deleted by admin! Revoke access
-            userData.expiry = null;
-            userData.usedKey = null;
-            saveDB(db);
-            active = false;
-            reason = "revoked";
+    try {
+        const userData = await User.findOne({ username: user });
+        if (!userData || userData.password !== pass) {
+            return res.status(401).json({ success: false, message: "Invalid credentials" });
         }
-    }
 
-    if (active && userData.expiry !== "lifetime") {
-        if (!userData.expiry) {
-            active = false;
-            reason = "missing";
-        } else {
-            const expiry = new Date(userData.expiry);
-            if (new Date() > expiry) {
+        let active = true;
+        let reason = null;
+
+        // Check if key exists
+        if (userData.usedKey) {
+            const keyExists = await Key.findOne({ code: userData.usedKey });
+            if (!keyExists) {
+                userData.expiry = null;
+                userData.usedKey = null;
+                await userData.save();
                 active = false;
-                reason = "expired";
+                reason = "revoked";
             }
         }
+
+        if (active && userData.expiry !== "lifetime") {
+            if (!userData.expiry) {
+                active = false;
+                reason = "missing";
+            } else {
+                const expiry = new Date(userData.expiry);
+                if (new Date() > expiry) {
+                    active = false;
+                    reason = "expired";
+                }
+            }
+        }
+
+        userData.lastLogin = new Date();
+        userData.ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        await userData.save();
+
+        const token = require('crypto').randomBytes(32).toString('hex');
+        res.json({ success: true, active, reason, token, expiry: userData.expiry });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
     }
-
-    // Track Metadata
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    userData.lastLogin = new Date().toISOString();
-    userData.ip = ip;
-    saveDB(db);
-
-    // In a real app, generate a JWT here
-    const token = crypto.randomBytes(32).toString('hex');
-
-    res.json({ success: true, active, reason, token, expiry: userData.expiry });
 });
 
-app.post('/activate', (req, res) => {
+app.post('/activate', async (req, res) => {
     const { user, key } = req.body;
-    const db = getDB();
-    const keyIndex = db.keys.findIndex(k => k.code === key && k.active);
+    try {
+        const keyData = await Key.findOne({ code: key, active: true });
+        if (!keyData) {
+            return res.status(400).json({ success: false, message: "Invalid or already used key" });
+        }
 
-    if (keyIndex === -1) {
-        return res.status(400).json({ success: false, message: "Invalid or already used key" });
+        const duration = keyData.type;
+        let expiryDate = null;
+
+        if (duration !== "LifeTime") {
+            const now = new Date();
+            if (duration === "1Hour") now.setHours(now.getHours() + 1);
+            else if (duration === "1Day") now.setDate(now.getDate() + 1);
+            else if (duration === "1Week") now.setDate(now.getDate() + 7);
+            else if (duration === "1Month") now.setMonth(now.getMonth() + 1);
+            expiryDate = now.toISOString();
+        } else {
+            expiryDate = "lifetime";
+        }
+
+        let userData = await User.findOne({ username: user });
+        if (!userData) {
+            // Should exist, but fail-safe
+            userData = new User({ username: user, password: 'auto' });
+        }
+
+        userData.expiry = expiryDate;
+        userData.usedKey = key;
+        await userData.save();
+
+        keyData.uses++;
+        if (keyData.uses >= keyData.max_activations) {
+            keyData.active = false;
+        }
+        await keyData.save();
+
+        res.json({ success: true, expiry: expiryDate });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
     }
-
-    const keyData = db.keys[keyIndex];
-    const duration = keyData.type; // e.g., "1Day", "LifeTime"
-    let expiryDate = null;
-
-    if (duration !== "LifeTime") {
-        const now = new Date();
-        if (duration === "1Hour") now.setHours(now.getHours() + 1);
-        else if (duration === "1Day") now.setDate(now.getDate() + 1);
-        else if (duration === "1Week") now.setDate(now.getDate() + 7);
-        else if (duration === "1Month") now.setMonth(now.getMonth() + 1);
-        expiryDate = now.toISOString();
-    } else {
-        expiryDate = "lifetime";
-    }
-
-    // Update user
-    if (!db.users[user]) {
-        db.users[user] = { pass: 'auto', expiry: null }; // Should already exist from register
-    }
-
-    db.users[user].expiry = expiryDate;
-    db.users[user].usedKey = key;
-
-    // Update key usage
-    keyData.uses++;
-    if (keyData.uses >= keyData.max_activations) {
-        keyData.active = false;
-    }
-
-    saveDB(db);
-    res.json({ success: true, expiry: expiryDate });
 });
 
-app.get('/status/:user', (req, res) => {
+app.get('/status/:user', async (req, res) => {
     const { user } = req.params;
-    const db = getDB();
-    const userData = db.users[user];
-
-    if (!userData || !userData.expiry) {
-        return res.json({ expiry: null });
-    }
-
-    // Verify key still exists
-    if (userData.usedKey) {
-        const keyExists = db.keys.find(k => k.code === userData.usedKey);
-        if (!keyExists) {
-            userData.expiry = null;
-            saveDB(db);
+    try {
+        const userData = await User.findOne({ username: user });
+        if (!userData || !userData.expiry) {
             return res.json({ expiry: null });
         }
-    }
 
-    res.json({ expiry: userData.expiry });
+        if (userData.usedKey) {
+            const keyExists = await Key.findOne({ code: userData.usedKey });
+            if (!keyExists) {
+                userData.expiry = null;
+                await userData.save();
+                return res.json({ expiry: null });
+            }
+        }
+        res.json({ expiry: userData.expiry });
+    } catch (e) {
+        res.json({ expiry: null });
+    }
 });
 
 // --- Admin Routes ---

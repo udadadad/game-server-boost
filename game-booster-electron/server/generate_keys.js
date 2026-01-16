@@ -1,8 +1,15 @@
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+require('dotenv').config();
+const mongoose = require('mongoose');
+const Key = require('./models/Key');
 
-const DB_PATH = path.join(__dirname, 'database.json');
+const MONGO_URI = process.env.MONGO_URI;
+
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('MongoDB Connected'))
+    .catch(err => {
+        console.error('MongoDB Connection Error:', err);
+        process.exit(1);
+    });
 
 function generatePattern(length = 16) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -13,33 +20,26 @@ function generatePattern(length = 16) {
     return result;
 }
 
-function createKey(type, maxActivations = 1) {
-    if (!fs.existsSync(DB_PATH)) {
-        fs.writeFileSync(DB_PATH, JSON.stringify({ users: {}, keys: [] }, null, 2));
-    }
-
-    const db = JSON.parse(fs.readFileSync(DB_PATH));
-
-    // BSP_[Duration]_[Random]
+async function createKey(type, maxActivations = 1) {
     const code = `BSP_${type}_${generatePattern()}`;
 
-    const newKey = {
+    const newKey = new Key({
         code,
-        type, // 1Hour, 1Day, 1Week, 1Month, LifeTime
+        type,
         max_activations: maxActivations,
         uses: 0,
         active: true,
-        created_at: new Date().toISOString()
-    };
+        source: 'cli'
+    });
 
-    db.keys.push(newKey);
-    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+    await newKey.save();
 
     console.log(`-----------------------------------`);
     console.log(`Generated Key: ${code}`);
     console.log(`Type:          ${type}`);
     console.log(`Activations:   ${maxActivations}`);
     console.log(`-----------------------------------`);
+    process.exit(0);
 }
 
 // Simple CLI
