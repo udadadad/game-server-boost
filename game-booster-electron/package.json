@@ -1,6 +1,6 @@
 {
   "name": "game-booster-electron",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Premium Game Booster with Advanced Optimization",
   "main": "main.js",
   "scripts": {

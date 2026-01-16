@@ -30,9 +30,11 @@ const TRANSLATIONS = {
         select_option: "Select an option below:",
         buy: "🛒 Buy License Key",
         reviews: "⭐ Reviews",
+        write_review: "✍️ Write Review",
+        read_reviews: "📢 Read Reviews",
         support: "🛠 Support",
         download: "📥 Download Launcher",
-        select_format: "📥 *Select Launcher Format:*",
+        select_format: "📥 *Select Launcher Format:*\n\n⚠️ *If Windows SmartScreen appears:*\nClick *'More Info'* → *'Run Anyway'*\\.\nThis is a false positive because we don't have an expensive Microsoft license yet\\.",
         setup: "Setup (Installer)",
         portable: "Portable (No Install)",
         select_plan: "🛒 *Select your Power Plan:*\nAll payments are processed securely via *Telegram Stars*\\.",
@@ -45,15 +47,26 @@ const TRANSLATIONS = {
         free_trial: "🎁 Get Free Trial (1 Hour)",
         trial_claimed: "❌ *Access Denied*\nYou have already claimed your free trial\\.",
         trial_success: "🎁 *Your Free Trial Key:*",
+        invite: "📢 Invite Friends",
+        ref_title: "📢 *Referral Program*\n\nInvite friends and get free keys\\!\n\n🔗 *Your Link:*\n",
+        ref_stats: "\n📊 *Stats:*\nInvited: ",
+        ref_bal: "\n💰 *Reward Points:* ",
+        ref_claim: "🎁 Claim 1 Week Key \\(Cost: 3 Pts\\)",
+        ref_no_points: "❌ Keep inviting\\! You need 3 points\\.",
+        sub_check_msg: "🔒 *Access Denied*\\n\\nPlease subscribe to our channel to use the bot\\!",
+        sub_btn: "📢 Subscribe Channel",
+        check_sub: "🔄 I Subscribed"
     },
     'ru': {
         welcome: "🚀 *Добро пожаловать в CyberBoost Store\\!*\nЛучший софт для оптимизации ваших игр\\.",
         select_option: "Выберите действие:",
         buy: "🛒 Купить ключ",
         reviews: "⭐ Отзывы",
+        write_review: "✍️ Оставить отзыв",
+        read_reviews: "📢 Читать отзывы",
         support: "🛠 Поддержка",
         download: "📥 Скачать Лаунчер",
-        select_format: "📥 *Выберите формат лаунчера:*",
+        select_format: "📥 *Выберите формат лаунчера:*\n\n⚠️ *Если Windows покажет синий экран защиты:*\nНажмите *'Подробнее'* → *'Всё равно запустить'*\\.\nЭто ложное срабатывание, так как у нас нет дорогой лицензии Microsoft\\.",
         setup: "Setup (Установочный)",
         portable: "Portable (Без установки)",
         select_plan: "🛒 *Выберите тарифный план:*\nОплата принимается через *Telegram Stars*\\.",
@@ -66,15 +79,26 @@ const TRANSLATIONS = {
         free_trial: "🎁 Пробный период (1 час)",
         trial_claimed: "❌ *Ошибка*\nВы уже получали бесплатный ключ\\.",
         trial_success: "🎁 *Ваш бесплатный ключ:*",
+        invite: "📢 Пригласить Друзей",
+        ref_title: "📢 *Реферальная Программа*\n\nПриглашай друзей и получай ключи бесплатно\\!\n\n🔗 *Твоя Ссылка:*\n",
+        ref_stats: "\n📊 *Статистика:*\nПриглашено: ",
+        ref_bal: "\n💰 *Баллы:* ",
+        ref_claim: "🎁 Забрать Ключ на неделю \\(3 балла\\)",
+        ref_no_points: "❌ Нужно 3 балла для награды\\.",
+        sub_check_msg: "🔒 *Доступ запрещен*\\n\\nПожалуйста, подпишитесь на наш канал, чтобы пользоваться ботом\\!",
+        sub_btn: "📢 Подписаться",
+        check_sub: "🔄 Я подписался"
     },
     'uk': {
         welcome: "🚀 *Ласкаво просимо до CyberBoost Store\\!*\nНайкращий софт для оптимізації ваших ігор\\.",
         select_option: "Оберіть дію:",
         buy: "🛒 Купити ключ",
         reviews: "⭐ Відгуки",
+        write_review: "✍️ Залишити відгук",
+        read_reviews: "📢 Читати відгуки",
         support: "🛠 Підтримка",
         download: "📥 Завантажити Лаунчер",
-        select_format: "📥 *Оберіть формат лаунчера:*",
+        select_format: "📥 *Оберіть формат лаунчера:*\n\n⚠️ *Якщо Windows покаже синій екран захисту:*\nНатисніть *'Докладніше'* → *'Все одно запустити'*\\.\nЦе хибне спрацьовування, оскільки у нас немає дорогої ліцензії Microsoft\\.",
         setup: "Setup (Встановлювач)",
         portable: "Portable (Без встановлення)",
         select_plan: "🛒 *Оберіть тарифний план:*\nОплата приймається через *Telegram Stars*\\.",
@@ -86,7 +110,16 @@ const TRANSLATIONS = {
         copy_msg: "_Скопіюйте та вставте в програму для активації\\._",
         free_trial: "🎁 Пробний період (1 година)",
         trial_claimed: "❌ *Помилка*\nВи вже отримували безкоштовний ключ\\.",
-        trial_success: "🎁 *Ваш безкоштовний ключ:*"
+        trial_success: "🎁 *Ваш безкоштовний ключ:*",
+        invite: "📢 Запросити Друзів",
+        ref_title: "📢 *Реферальна Програма*\n\nЗапрошуй друзів та отримуй ключі безкоштовно\\!\n\n🔗 *Твоє Посилання:*\n",
+        ref_stats: "\n📊 *Статистика:*\nЗапрошено: ",
+        ref_bal: "\n💰 *Бали:* ",
+        ref_claim: "🎁 Забрати Ключ на тиждень \\(3 бали\\)",
+        ref_no_points: "❌ Потрібно 3 бали для нагороди\\.",
+        sub_check_msg: "🔒 *Доступ заборонено*\\n\\nБудь ласка, підпишіться на наш канал, щоб користуватися ботом\\!",
+        sub_btn: "📢 Підписатися",
+        check_sub: "🔄 Я підписався"
     }
 };
 
@@ -164,7 +197,50 @@ bot.catch((err, ctx) => {
     console.error(`Ooops, encountered an error for ${ctx.updateType}`, err);
 });
 
-bot.start((ctx) => {
+// --- Middleware & Helper Functions ---
+async function isSubscribed(ctx) {
+    const channelUsername = '@Booster_pro_otzivi';
+    try {
+        const userId = ctx.from.id;
+        const member = await ctx.telegram.getChatMember(channelUsername, userId);
+        return ['creator', 'administrator', 'member', 'restricted'].includes(member.status);
+    } catch (e) {
+        // If bot is not admin in channel or error, default to true to avoid blocking everyone
+        console.error("Sub check error:", e.message);
+        return true;
+    }
+}
+
+async function sendSubscriptionCheck(ctx) {
+    const lang = getUserLang(ctx.from.id);
+    const t = TRANSLATIONS[lang];
+    const channelLink = 'https://t.me/Booster_pro_otzivi';
+
+    const msg = t.sub_check_msg;
+    const btns = Markup.inlineKeyboard([
+        [Markup.button.url(t.sub_btn, channelLink)],
+        [Markup.button.callback(t.check_sub, 'check_subscription')]
+    ]);
+
+    if (ctx.callbackQuery) {
+        ctx.editMessageText(msg, { parse_mode: 'MarkdownV2', ...btns });
+    } else {
+        ctx.replyWithMarkdownV2(msg, btns);
+    }
+}
+
+bot.start(async (ctx) => {
+    // Handle Referral Payload first (background)
+    const payload = ctx.startPayload;
+    if (payload && payload != ctx.from.id) {
+        ctx.session = { referrerId: payload };
+    }
+
+    // Check Sub
+    if (!(await isSubscribed(ctx))) {
+        return sendSubscriptionCheck(ctx);
+    }
+
     ctx.replyWithMarkdownV2(
         `🌐 *Please select your language / Выберите язык / Оберіть мову:*`,
         Markup.inlineKeyboard([
@@ -191,7 +267,8 @@ function showMainMenu(ctx, lang) {
     const buttons = [
         [Markup.button.callback(t.buy, 'main_buy'), Markup.button.callback(t.free_trial, 'main_trial')],
         [Markup.button.callback(t.download, 'main_download')],
-        [Markup.button.callback(t.reviews, 'main_reviews'), Markup.button.callback(t.support, 'main_support')]
+        [Markup.button.callback(t.reviews, 'main_reviews'), Markup.button.callback(t.invite, 'main_invite')],
+        [Markup.button.callback(t.support, 'main_support')]
     ];
 
     // Add Admin button for authorized user
@@ -379,13 +456,40 @@ bot.action('dl_portable', async (ctx) => {
     }
 });
 
+bot.action('check_subscription', async (ctx) => {
+    if (await isSubscribed(ctx)) {
+        // Show main menu
+        const lang = getUserLang(ctx.from.id);
+        const t = TRANSLATIONS[lang];
+        const text = `${t.welcome}\n\n${t.select_option}`;
+        const buttons = [
+            [Markup.button.callback(t.buy, 'main_buy'), Markup.button.callback(t.free_trial, 'main_trial')],
+            [Markup.button.callback(t.download, 'main_download')],
+            [Markup.button.callback(t.reviews, 'main_reviews'), Markup.button.callback(t.invite, 'main_invite')],
+            [Markup.button.callback(t.support, 'main_support')]
+        ];
+        // Admin check
+        if (ctx.from.id.toString() === ADMIN_ID) {
+            buttons.push([Markup.button.callback("🛠 Admin Panel", "admin_panel")]);
+        }
+
+        ctx.editMessageText(text, {
+            parse_mode: 'MarkdownV2',
+            ...Markup.inlineKeyboard(buttons)
+        });
+    } else {
+        const lang = getUserLang(ctx.from.id);
+        ctx.answerCbQuery(TRANSLATIONS[lang].sub_check_msg.replace(/\\/g, ''), { show_alert: true });
+    }
+});
+
 bot.action('main_buy', (ctx) => {
     const lang = getUserLang(ctx.from.id);
     const t = TRANSLATIONS[lang];
     ctx.editMessageText(t.select_plan, {
         parse_mode: 'MarkdownV2',
         ...Markup.inlineKeyboard([
-            [Markup.button.callback('1 Day (50 Stars)', 'buy_1day')],
+            [Markup.button.callback('1 Day (20 Stars)', 'buy_1day')],
             [Markup.button.callback('1 Week (250 Stars)', 'buy_1week')],
             [Markup.button.callback('1 Month (700 Stars)', 'buy_1month')],
             [Markup.button.callback('🔥 LIFETIME (3000 Stars)', 'buy_lifetime')],
@@ -397,13 +501,63 @@ bot.action('main_buy', (ctx) => {
 bot.action('main_reviews', (ctx) => {
     const lang = getUserLang(ctx.from.id);
     const t = TRANSLATIONS[lang];
+
+    // Replace YOUR_ADMIN_USERNAME with the actual username if different
+    const adminContact = 'Kyotaka_Ayanakouji1';
+    const channelLink = 'https://t.me/Booster_pro_otzivi';
+
     ctx.editMessageText(t.reviews_channel, {
         parse_mode: 'MarkdownV2',
         ...Markup.inlineKeyboard([
-            [Markup.button.url('🔗 Link', 'https://t.me/YOUR_REVIEWS_CHANNEL')],
+            [Markup.button.url(t.read_reviews, channelLink)],
+            [Markup.button.url(t.write_review, `https://t.me/${adminContact}`)],
             [Markup.button.callback(t.back, 'back_to_main')]
         ])
     });
+});
+
+bot.action('main_invite', async (ctx) => {
+    const lang = getUserLang(ctx.from.id);
+    const t = TRANSLATIONS[lang];
+    const userId = ctx.from.id;
+    const botUser = ctx.botInfo.username;
+
+    // Get stats from server
+    let stats = { referrals: 0, rewardBalance: 0 };
+    try {
+        const res = await axios.post(`${SERVER_URL}/bot/get-profile`, { userId });
+        if (res.data) stats = res.data;
+    } catch (e) { }
+
+    const link = `https://t.me/${botUser}?start=${userId}`;
+    const msg = `${t.ref_title}\`${link}\`\n${t.ref_stats}\`${stats.referrals}\`${t.ref_bal}\`${stats.rewardBalance}\``;
+
+    const btns = [];
+    if (stats.rewardBalance >= 3) {
+        btns.push([Markup.button.callback(t.ref_claim, 'ref_claim_reward')]);
+    }
+    btns.push([Markup.button.callback(t.back, 'back_to_main')]);
+
+    ctx.editMessageText(msg, {
+        parse_mode: 'MarkdownV2',
+        ...Markup.inlineKeyboard(btns)
+    });
+});
+
+bot.action('ref_claim_reward', async (ctx) => {
+    const lang = getUserLang(ctx.from.id);
+    const t = TRANSLATIONS[lang];
+
+    try {
+        const res = await axios.post(`${SERVER_URL}/bot/claim-reward`, { userId: ctx.from.id });
+        if (res.data.success) {
+            ctx.replyWithMarkdownV2(`🎉 *CONGRATULATIONS!* 🎉\n\nHere is your FREE Key:\n\`${res.data.key}\`\n\n${t.copy_msg}`);
+        } else {
+            ctx.reply(t.ref_no_points);
+        }
+    } catch (e) {
+        ctx.reply("Error claiming reward.");
+    }
 });
 
 bot.action('main_support', (ctx) => {
@@ -424,7 +578,7 @@ bot.action('back_to_main', (ctx) => {
 
 // Prices in Telegram Stars (XTR)
 const PRODUCT_PRICES = {
-    '1day': 50,
+    '1day': 20,
     '1week': 250,
     '1month': 700,
     'lifetime': 3000
@@ -474,6 +628,31 @@ bot.on('successful_payment', async (ctx) => {
         const key = inv[productId].shift(); // Remove the first available key
         saveInventory(inv);
         markKeyUsed(ctx.from.id, productId, key);
+
+        // Notify Server for Referrals
+        try {
+            await axios.post(`${SERVER_URL}/bot/purchase-success`, {
+                userId: ctx.from.id,
+                amount: ctx.successful_payment.total_amount
+            });
+        } catch (e) { } // Don't block user if server fails
+
+        // --- Auto-Post to Channel ---
+        try {
+            const channelUsername = '@Booster_pro_otzivi';
+            const buyerName = ctx.from.first_name || 'User';
+            // Determine Plan Name based on amount or payload (payload is structured as 'uid_plan')
+            // payload example: '123456_lifetime' or just 'lifetime' depending on invoice creation
+            const invoicePayload = ctx.successful_payment.invoice_payload; // "userId_planType"
+            const planType = invoicePayload.split('_')[1] || 'License';
+
+            const postText = `🚀 *New Purchase! / Новая Покупка!*\n\n👤 *User:* ${buyerName}\n💎 *Plan:* \`${planType.toUpperCase()}\`\n\n🎉 Thank you for your support! / Спасибо за поддержку!`;
+
+            await ctx.telegram.sendMessage(channelUsername, postText, { parse_mode: 'Markdown' });
+        } catch (postErr) {
+            console.error("Failed to auto-post to channel:", postErr.message);
+        }
+        // -----------------------------
 
         await ctx.replyWithMarkdownV2(
             `${t.success_pay}\`${key}\`\\n\\n${t.copy_msg}`
@@ -528,9 +707,11 @@ async function trackUser(ctx) {
 
     // Sync with Server for Web Admin Panel
     try {
-        await axios.post(`${SERVER_URL}/admin/sync-bot-users`, {
-            userId, username, first_name, last_name
-        });
+        const payload = { userId, username, first_name, last_name };
+        if (ctx.session && ctx.session.referrerId) {
+            payload.referrerId = ctx.session.referrerId;
+        }
+        await axios.post(`${SERVER_URL}/admin/sync-bot-users`, payload);
     } catch (e) {
         // Server might be down, ignore
     }

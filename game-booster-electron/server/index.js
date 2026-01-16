@@ -153,19 +153,108 @@ app.get('/status/:user', async (req, res) => {
 });
 
 // --- Admin Routes ---
-// --- Admin Routes ---
+// --- Admin/Bot Routes ---
 app.post('/admin/sync-bot-users', async (req, res) => {
-    const { userId, username, first_name, last_name } = req.body;
+    const { userId, username, first_name, last_name, referrerId } = req.body;
     try {
+        let user = await BotUser.findOne({ userId });
+
         const updateData = {
             username: username || 'Unknown',
             name: `${first_name || ''} ${last_name || ''}`.trim() || 'No Name',
             lastSeen: new Date()
         };
-        await BotUser.findOneAndUpdate({ userId }, updateData, { upsert: true, new: true });
-        res.json({ success: true });
+
+        if (user) {
+            // Existing user, just update info
+            Object.assign(user, updateData);
+        } else {
+            // New User
+            user = new BotUser({ userId, ...updateData });
+            // Only set referrer if it's a NEW user and referrer exists
+            if (referrerId && referrerId !== userId) {
+                const refUser = await BotUser.findOne({ userId: referrerId });
+                if (refUser) {
+                    user.referredBy = referrerId;
+                    console.log(`[Refferal] ${userId} invited by ${referrerId}`);
+                }
+            }
+        }
+        await user.save();
+        res.json({ success: true, referredBy: user.referredBy });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+app.post('/bot/purchase-success', async (req, res) => {
+    const { userId, amount } = req.body; // amount in Stars
+    try {
+        const user = await BotUser.findOne({ userId });
+        if (user && user.referredBy) {
+            const referrer = await BotUser.findOne({ userId: user.referredBy });
+            if (referrer) {
+                // Reward Logic: 10% of purchase price as Points? 
+                // Let's do simplified: 1 Sale = 1 Point. 3 Points = 1 Week Code.
+                referrer.referrals += 1;
+                referrer.rewardBalance += 1;
+                await referrer.save();
+                console.log(`[Referral] User ${referrer.userId} rewarded for sale!`);
+            }
+        }
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
+});
+
+app.post('/bot/get-profile', async (req, res) => {
+    const { userId } = req.body;
+    try {
+        const user = await BotUser.findOne({ userId });
+        res.json(user || {});
+    } catch (e) { res.json({}); }
+});
+
+app.post('/bot/claim-reward', async (req, res) => {
+    const { userId } = req.body;
+    try {
+        const user = await BotUser.findOne({ userId });
+        if (!user || user.rewardBalance < 3) {
+            return res.json({ success: false, message: "Not enough points" });
+        }
+
+        // Generate Reward Key (1 Week)
+        const type = '1Week';
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let randomPart = '';
+        for (let i = 0; i < 16; i++) {
+            randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const code = `BSP_${type}_${randomPart}`;
+
+        const newKey = new Key({
+            code, type, max_activations: 1, uses: 0, active: true, source: 'referral_reward'
+        });
+        await newKey.save();
+
+        // Deduct balance
+        user.rewardBalance -= 3;
+        await user.save();
+
+        res.json({ success: true, key: code });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+// --- Admin Routes ---
+app.get('/admin/users', async (req, res) => {
+    try {
+        const users = await User.find({}, 'username ip lastLogin expiry usedKey');
+        res.json(users);
+    } catch (e) {
+        res.status(500).json([]);
     }
 });
 
