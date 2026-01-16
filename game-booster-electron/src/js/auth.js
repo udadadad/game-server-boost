@@ -53,9 +53,18 @@ const auth = {
     },
 
     activate: async () => {
-        const user = localStorage.getItem('current_user');
+        let user = localStorage.getItem('current_user');
+        if (!user) user = localStorage.getItem('remembered_user'); // Fallback if lost
+
         const key = document.getElementById('activation-key').value;
         const error = document.getElementById('error-msg');
+
+        if (!user) {
+            // If still no user, we must force re-login
+            alert("Session Error: Identity lost. Please login again.");
+            showLogin();
+            return;
+        }
 
         if (!key) {
             error.innerText = "ERROR: Enter Key";

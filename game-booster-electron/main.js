@@ -1,7 +1,29 @@
 const { app, BrowserWindow, ipcMain, shell, Tray, Menu } = require('electron');
-const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
+const { exec, execSync } = require('child_process');
+const sudo = require('sudo-prompt');
+
+// --- Elevation Logic (CRITICAL: MUST BE FIRST) ---
+function isAdmin() {
+    try {
+        fs.accessSync('C:\\Windows\\System32\\config\\SAM');
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+if (process.platform === 'win32' && !isAdmin() && !process.argv.includes('--relaunched-admin')) {
+    const options = { name: 'BoosterPRO' };
+    sudo.exec(`"${process.execPath}" "${__dirname}" --relaunched-admin`, options, (error) => {
+        if (error) console.error('Failed to elevate:', error);
+        app.quit();
+    });
+    return; // Prevent the rest of the script from executing in this non-admin process
+}
+
+const { autoUpdater } = require('electron-updater');
 
 // Configure Auto-Updater
 autoUpdater.autoDownload = true;
@@ -26,6 +48,7 @@ let appLang = 'en'; // New global for localized tray
 let optimizationGuardInterval = null;
 let activeGuardedServices = [];
 const SERVER_URL = 'https://game-server-boost.onrender.com';
+let lastSession = null; // Store { user, pass, time }
 
 try {
     const CURRENT_SECURITY_V = 2;
@@ -48,6 +71,7 @@ try {
     autoBoostEnabled = saved.autoBoost || false;
     global.minimizeToTray = saved.tray !== undefined ? saved.tray : true;
     appLang = saved.lang || 'en';
+    lastSession = saved.session || null;
 } catch (e) {
     console.error("Settings/Migration Error:", e);
 }
@@ -70,8 +94,17 @@ function createWindow() {
     mainWindow.setMenuBarVisibility(false);
 
 
-    // Determine entry point (Check if persistent auth exists? simplified for now)
-    mainWindow.loadFile('src/login.html');
+    // Check for Auto-Login (Bypass within 1 hour)
+    const now = Date.now();
+    const oneHour = 60 * 60 * 1000;
+
+    if (lastSession && (now - lastSession.time < oneHour)) {
+        console.log("Auto-Login detected. Attempting to restore session...");
+        mainWindow.loadFile('src/index.html'); // Load dashboard first, we'll verify in bg
+        silentLogin(lastSession.user, lastSession.pass);
+    } else {
+        mainWindow.loadFile('src/login.html');
+    }
 
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
@@ -180,8 +213,56 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+    // Save session time on close if authenticated
+    if (isUserAuthenticated) {
+        saveSessionData();
+    }
     if (process.platform !== 'darwin') app.quit();
 });
+
+function saveSessionData() {
+    try {
+        let saved = {};
+        if (fs.existsSync(SETTINGS_FILE)) {
+            saved = JSON.parse(fs.readFileSync(SETTINGS_FILE));
+        }
+
+        // We only save session if we have credentials (from the last successful login)
+        if (lastSession) {
+            saved.session = {
+                user: lastSession.user,
+                pass: lastSession.pass,
+                time: Date.now()
+            };
+            fs.writeFileSync(SETTINGS_FILE, JSON.stringify(saved, null, 2));
+        }
+    } catch (e) {
+        console.error("Failed to save session:", e);
+    }
+}
+
+async function silentLogin(user, pass) {
+    try {
+        const response = await fetch(`${SERVER_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user, pass })
+        });
+
+        const data = await response.json();
+        if (data.success && data.active) {
+            isUserAuthenticated = true;
+            lastSession = { user, pass, time: Date.now() }; // Update time
+            createTray();
+            startLicenseGuard(user);
+        } else {
+            console.log("Silent Login failed, redirecting to login...");
+            if (mainWindow) mainWindow.loadFile('src/login.html');
+        }
+    } catch (e) {
+        console.log("Silent Login unreachable.");
+    }
+}
 
 ipcMain.handle('auth-login', async (event, { user, pass }) => {
     try {
@@ -196,6 +277,8 @@ ipcMain.handle('auth-login', async (event, { user, pass }) => {
         if (data.success) {
             if (data.active) {
                 isUserAuthenticated = true;
+                lastSession = { user, pass, time: Date.now() };
+                saveSessionData(); // Persist immediately on login
                 createTray();
                 startLicenseGuard(user);
             }
@@ -231,6 +314,8 @@ ipcMain.handle('auth-activate', async (event, { user, key }) => {
 
         if (data.success) {
             isUserAuthenticated = true;
+            lastSession = { user, pass: (lastSession ? lastSession.pass : 'auto'), time: Date.now() };
+            saveSessionData();
             createTray();
             startLicenseGuard(user);
         }
@@ -260,8 +345,6 @@ ipcMain.handle('auth-get-license', async (event, { user }) => {
 
 
 // --- Optimization Handlers ---
-const sudo = require('sudo-prompt');
-const { exec } = require('child_process'); // For registry queries
 const options = {
     name: 'CyberBoost Optimizer',
 };
@@ -292,7 +375,7 @@ async function ensureBackup() {
         return new Promise((resBackup) => {
             const backupScript = path.join(scriptsDir, 'backup.ps1');
             const cmd = `powershell.exe -ExecutionPolicy Bypass -File "${backupScript}"`;
-            sudo.exec(cmd, options, (error, stdout, stderr) => {
+            exec(cmd, (error, stdout, stderr) => {
                 if (!error && stdout) {
                     fs.writeFileSync(backupFile, stdout.trim());
                     console.log("Backup snapshot saved.");
@@ -372,7 +455,7 @@ ipcMain.handle('run-boost', async (event, config) => {
 
         console.log("Executing Optimization Sequence...");
 
-        sudo.exec(finalCmd, options, (error, stdout, stderr) => {
+        exec(finalCmd, (error, stdout, stderr) => {
             if (error) {
                 console.error("Optimization Failed:", error);
                 resolve({ success: false, message: error.message });
@@ -399,7 +482,7 @@ ipcMain.handle('run-restore', async () => {
 
         console.log("Restoring from:", backupFile);
 
-        sudo.exec(cmd, options, (error, stdout, stderr) => {
+        exec(cmd, (error, stdout, stderr) => {
             if (error) {
                 resolve({ success: false, message: error.message });
             } else {
@@ -630,7 +713,7 @@ async function executeFullBoost() {
     commands.push(`powershell.exe -ExecutionPolicy Bypass -File "${path.join(scriptsDir, 'debloat.ps1')}"`);
     commands.push(`powershell.exe -ExecutionPolicy Bypass -File "${path.join(scriptsDir, 'clean_ram.ps1')}"`);
 
-    sudo.exec(commands.join(" ; "), options, (error) => {
+    exec(commands.join(" ; "), (error) => {
         if (!error) {
             console.log("Boost Sequence Applied successfully.");
         }
@@ -653,6 +736,7 @@ ipcMain.handle('save-settings', async (event, settings) => {
     // 3. Auto-Boost
     autoBoostEnabled = settings.autoBoost;
 
+    // 4. Language for Tray
     // 4. Language for Tray
     appLang = settings.lang || 'en';
 
@@ -702,10 +786,10 @@ function enforceServiceStates() {
         // We use sc query to check if it's running, and sc stop if it is.
         // This is low overhead and works without admin prompt if the app is already elevated.
         const checkCmd = `sc query "${svc}"`;
-        sudo.exec(checkCmd, options, (error, stdout) => {
+        exec(checkCmd, (error, stdout) => {
             if (!error && stdout && stdout.includes("RUNNING")) {
                 console.log(`[GUARD] Service ${svc} detected as RUNNING. Stopping...`);
-                sudo.exec(`sc stop "${svc}"`, options);
+                exec(`sc stop "${svc}"`);
             }
         });
     });
@@ -764,6 +848,17 @@ async function checkLicenseStatus() {
 function expireSession() {
     console.log("[LICENSE GUARD] License expired. Kicking user...");
     isUserAuthenticated = false;
+
+    // Clear Session Persistence
+    lastSession = null;
+    try {
+        if (fs.existsSync(SETTINGS_FILE)) {
+            const saved = JSON.parse(fs.readFileSync(SETTINGS_FILE));
+            delete saved.session;
+            fs.writeFileSync(SETTINGS_FILE, JSON.stringify(saved, null, 2));
+        }
+    } catch (e) { }
+
     stopOptimizationGuard();
     createTray(); // Reset tray to unauthorized state
     if (mainWindow && mainWindow.webContents) {

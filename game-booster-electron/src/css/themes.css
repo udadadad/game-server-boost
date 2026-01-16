@@ -1,0 +1,56 @@
+:root {
+    /* Default - Midnight Pro */
+    --bg-dark: #000000;
+    --bg-panel: #0a0a0a;
+    --accent-primary: #ffffff;
+    --accent-secondary: #808080;
+    --text-main: #ffffff;
+    --text-dim: #666666;
+    --border-color: #333333;
+    --glass-bg: rgba(10, 10, 10, 0.9);
+    --hover-bg: #1a1a1a;
+    --button-bg: #000000;
+    --input-bg: #0a0a0a;
+}
+
+body.theme-cyber {
+    --bg-dark: #00050a;
+    --bg-panel: #000d1a;
+    --accent-primary: #00f2ff;
+    --accent-secondary: #0072ff;
+    --text-main: #e0faff;
+    --text-dim: #5c8b99;
+    --border-color: #00334d;
+    --glass-bg: rgba(0, 13, 26, 0.9);
+    --hover-bg: #001a33;
+    --button-bg: #000a14;
+    --input-bg: #000d1a;
+}
+
+body.theme-gold {
+    --bg-dark: #0a0800;
+    --bg-panel: #141100;
+    --accent-primary: #ffcc00;
+    --accent-secondary: #ff8800;
+    --text-main: #fff8e0;
+    --text-dim: #998b5c;
+    --border-color: #4d4400;
+    --glass-bg: rgba(20, 17, 0, 0.9);
+    --hover-bg: #262100;
+    --button-bg: #141100;
+    --input-bg: #141100;
+}
+
+body.theme-toxic {
+    --bg-dark: #040800;
+    --bg-panel: #0a1400;
+    --accent-primary: #00ff41;
+    --accent-secondary: #008f11;
+    --text-main: #e0ffe6;
+    --text-dim: #5c9966;
+    --border-color: #1b3300;
+    --glass-bg: rgba(10, 20, 0, 0.9);
+    --hover-bg: #152b00;
+    --button-bg: #0a1400;
+    --input-bg: #0a1400;
+}

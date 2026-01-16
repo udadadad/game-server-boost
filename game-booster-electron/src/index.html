@@ -4,6 +4,7 @@
 <head>
     <title>Game Booster Pro</title>
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/themes.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -280,6 +281,16 @@
                             <option value="en">English</option>
                             <option value="ru">Русский</option>
                             <option value="uk">Українська</option>
+                        </select>
+                    </div>
+                    <div class="info-row">
+                        <span data-i18n="sett_theme">UI Theme:</span>
+                        <select id="sett-theme" onchange="applyTheme(this.value)"
+                            style="background:#222; color:#fff; border:1px solid #444; padding:2px 5px; margin-left:10px;">
+                            <option value="midnight">Midnight Pro</option>
+                            <option value="cyber">Cyber Stealth</option>
+                            <option value="gold">Neon Gold</option>
+                            <option value="toxic">Toxic Matrix</option>
                         </select>
                     </div>
                     <label class="checkbox-row">

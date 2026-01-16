@@ -12,7 +12,8 @@ const translations = {
         opt_memory: "Memory Optimization", opt_process_priority: "Process Priority",
         opt_telemetry: "Privacy & Telemetry", opt_junk: "Full Junk Cleaner",
         deep_desc: "Aggressive system tweaks. Some may require reboot.",
-        sett_lang: "Language:", sett_startup: "Run at Startup", sett_tray: "Minimize to Tray", sett_autoboost: "Enable Auto-Boost (Real-time Detection)"
+        sett_lang: "Language:", sett_startup: "Run at Startup", sett_tray: "Minimize to Tray", sett_autoboost: "Enable Auto-Boost (Real-time Detection)",
+        sett_theme: "UI Theme:"
     },
     ru: {
         nav_dashboard: "Обзор", nav_optimize: "Оптимизация", nav_processes: "Процессы", nav_games: "Игры", nav_settings: "Настройки",
@@ -26,7 +27,8 @@ const translations = {
         opt_memory: "Оптимизация памяти", opt_process_priority: "Приоритет процессов",
         opt_telemetry: "Приватность и Телеметрия", opt_junk: "Полная очистка мусора",
         deep_desc: "Агрессивные системные твики. Некоторые требуют перезагрузки.",
-        sett_lang: "Язык:", sett_startup: "Запуск при старте", sett_tray: "Сворачивать в трей", sett_autoboost: "Auto-Boost (Детектор игр)"
+        sett_lang: "Язык:", sett_startup: "Запуск при старте", sett_tray: "Сворачивать в трей", sett_autoboost: "Auto-Boost (Детектор игр)",
+        sett_theme: "Тема оформления:"
     },
     uk: {
         nav_dashboard: "Огляд", nav_optimize: "Оптимізація", nav_processes: "Процеси", nav_games: "Ігри", nav_settings: "Налаштування",
@@ -40,7 +42,8 @@ const translations = {
         opt_memory: "Оптимізація пам'яті", opt_process_priority: "Пріоритет процесів",
         opt_telemetry: "Приватність та Телеметрія", opt_junk: "Повна очистка сміття",
         deep_desc: "Агресивні системні твіки. Деякі потребують перезавантаження.",
-        sett_lang: "Мова:", sett_startup: "Запуск при старті", sett_tray: "Згортати в трей", sett_autoboost: "Auto-Boost (Детектор ігор)"
+        sett_lang: "Мова:", sett_startup: "Запуск при старті", sett_tray: "Згортати в трей", sett_autoboost: "Auto-Boost (Детектор ігор)",
+        sett_theme: "Тема оформлення:"
     }
 };
 
@@ -52,6 +55,11 @@ function changeLanguage(lang) {
             el.innerText = translations[lang][key];
         }
     });
+}
+
+function applyTheme(theme) {
+    document.body.className = `theme-${theme}`;
+    localStorage.setItem('app_theme', theme);
 }
 
 // --- Navigation Logic ---
@@ -142,13 +150,18 @@ async function updateMetrics() {
 setInterval(updateMetrics, 5000);
 
 // --- Settings Logic ---
-async function saveSettings() {
-    const settings = {
+function getSettingsSnapshot() {
+    return {
         startup: document.getElementById('sett-startup').checked,
         tray: document.getElementById('sett-tray').checked,
         autoBoost: document.getElementById('sett-autoboost').checked,
-        lang: document.getElementById('sett-lang').value
+        lang: document.getElementById('sett-lang').value,
+        theme: document.getElementById('sett-theme').value
     };
+}
+
+async function saveSettings() {
+    const settings = getSettingsSnapshot();
     await window.api.invoke('save-settings', settings);
     alert("System Preferences Updated!");
 }
@@ -189,6 +202,18 @@ if (window.api.onAutoBoostStatus) {
     });
 }
 
+// Log message listener from main
+if (window.api.on) {
+    window.api.on('log-message', (data) => {
+        const log = document.getElementById('log-output');
+        if (log) {
+            const color = data.type === 'warning' ? '#ffcc00' : '#fff';
+            log.innerHTML += `> <span style="color:${color}">${data.text}</span><br>`;
+            log.scrollTop = log.scrollHeight;
+        }
+    });
+}
+
 if (window.api.onRestoreTrigger) {
     window.api.onRestoreTrigger(() => {
         // Trigger the restore button logic
@@ -200,7 +225,8 @@ if (window.api.onRestoreTrigger) {
 if (window.api.onLicenseExpired) {
     window.api.onLicenseExpired(() => {
         alert('⚠️ Ваша подписка закончилась!\nПожалуйста, введите новый ключ для продолжения работы.');
-        localStorage.removeItem('current_user');
+        // Do NOT remove current_user, we need it for re-activation!
+        // localStorage.removeItem('current_user'); 
         window.location.href = 'login.html?mode=activation&reason=expired';
     });
 }
@@ -237,6 +263,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedLang = localStorage.getItem('app_lang') || 'en';
     document.getElementById('sett-lang').value = savedLang;
     changeLanguage(savedLang);
+
+    const savedTheme = localStorage.getItem('app_theme') || 'midnight';
+    document.getElementById('sett-theme').value = savedTheme;
+    applyTheme(savedTheme);
 
     switchTab('dashboard', document.querySelector('.nav-links li'));
     checkCalibration();

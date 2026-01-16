@@ -4,6 +4,7 @@
 <head>
     <title>Game Booster - Login</title>
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/themes.css">
     <link rel="stylesheet" href="css/login.css">
 </head>
 
@@ -88,9 +89,14 @@
                 msg.innerText = "IDENTITY VERIFIED. ACTIVATION REQUIRED.";
                 msg.style.color = "#888";
             }
+
+            setTimeout(() => document.getElementById('activation-key').focus(), 100);
         }
 
         window.onload = () => {
+            const savedTheme = localStorage.getItem('app_theme') || 'midnight';
+            document.body.className = `theme-${savedTheme}`;
+
             const params = new URLSearchParams(window.location.search);
             if (params.get('mode') === 'activation') {
                 showActivation(params.get('reason'));

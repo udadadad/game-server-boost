@@ -19,7 +19,10 @@ contextBridge.exposeInMainWorld('api', {
     onLicenseExpired: (callback) => ipcRenderer.on('license-expired', (event) => callback()),
     // Expose System Info later
     on: (channel, func) => {
-        // Safe subscription
+        const validChannels = ['overlay-update', 'update-opacity', 'log-message'];
+        if (validChannels.includes(channel)) {
+            ipcRenderer.on(channel, (event, ...args) => func(...args));
+        }
     },
     send: (channel, data) => {
         const validChannels = ['window-minimize', 'window-maximize', 'window-close'];
