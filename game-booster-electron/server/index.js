@@ -11,6 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 const MONGO_URI = process.env.MONGO_URI;
+const BotUser = require('./models/BotUser');
 
 // Connect to MongoDB
 mongoose.connect(MONGO_URI)
@@ -152,28 +153,29 @@ app.get('/status/:user', async (req, res) => {
 });
 
 // --- Admin Routes ---
-app.post('/admin/sync-bot-users', (req, res) => {
+// --- Admin Routes ---
+app.post('/admin/sync-bot-users', async (req, res) => {
     const { userId, username, first_name, last_name } = req.body;
-    const db = getDB();
-    if (!db.botUsers) db.botUsers = {};
-
-    db.botUsers[userId] = {
-        username: username || 'Unknown',
-        name: `${first_name || ''} ${last_name || ''}`.trim() || 'No Name',
-        lastSeen: new Date().toISOString()
-    };
-
-    saveDB(db);
-    res.json({ success: true });
+    try {
+        const updateData = {
+            username: username || 'Unknown',
+            name: `${first_name || ''} ${last_name || ''}`.trim() || 'No Name',
+            lastSeen: new Date()
+        };
+        await BotUser.findOneAndUpdate({ userId }, updateData, { upsert: true, new: true });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
 });
 
-app.get('/admin/bot-users', (req, res) => {
-    const db = getDB();
-    const users = Object.keys(db.botUsers || {}).map(id => ({
-        id,
-        ...db.botUsers[id]
-    }));
-    res.json(users);
+app.get('/admin/bot-users', async (req, res) => {
+    try {
+        const users = await BotUser.find({});
+        res.json(users);
+    } catch (e) {
+        res.status(500).json([]);
+    }
 });
 
 app.post('/admin/login', (req, res) => {
@@ -185,25 +187,34 @@ app.post('/admin/login', (req, res) => {
     }
 });
 
-app.get('/admin/stats', (req, res) => {
-    const db = getDB();
-    const stats = {
-        totalUsers: Object.keys(db.users).length,
-        totalKeys: db.keys.length,
-        totalActivations: db.keys.reduce((sum, k) => sum + k.uses, 0)
-    };
-    res.json(stats);
+app.get('/admin/stats', async (req, res) => {
+    try {
+        const totalUsers = await User.countDocuments({});
+        const totalKeys = await Key.countDocuments({});
+        // Aggregate total activations
+        const result = await Key.aggregate([
+            { $group: { _id: null, totalActivations: { $sum: "$uses" } } }
+        ]);
+        const totalActivations = result.length > 0 ? result[0].totalActivations : 0;
+
+        res.json({ totalUsers, totalKeys, totalActivations });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
-app.get('/admin/keys', (req, res) => {
-    res.json(getDB().keys);
+app.get('/admin/keys', async (req, res) => {
+    try {
+        const keys = await Key.find({});
+        res.json(keys);
+    } catch (e) {
+        res.status(500).json([]);
+    }
 });
 
-app.post('/admin/generate-key', (req, res) => {
+app.post('/admin/generate-key', async (req, res) => {
     const { type, maxActivations } = req.body;
-    const db = getDB();
 
-    // BSP_[Duration]_[LongRandomAlphanumeric]
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let randomPart = '';
     for (let i = 0; i < 16; i++) {
@@ -212,53 +223,61 @@ app.post('/admin/generate-key', (req, res) => {
 
     const code = `BSP_${type}_${randomPart}`;
 
-    const newKey = {
-        code,
-        type,
-        max_activations: parseInt(maxActivations) || 1,
-        uses: 0,
-        active: true,
-        created_at: new Date().toISOString()
-    };
-
-    db.keys.push(newKey);
-    saveDB(db);
-    res.json({ success: true, key: newKey });
+    try {
+        const newKey = new Key({
+            code,
+            type,
+            max_activations: parseInt(maxActivations) || 1,
+            uses: 0,
+            active: true,
+            source: 'admin_panel'
+        });
+        await newKey.save();
+        res.json({ success: true, key: newKey });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
 });
 
-app.post('/admin/delete-key', (req, res) => {
+app.post('/admin/delete-key', async (req, res) => {
     const { code } = req.body;
-    const db = getDB();
-    db.keys = db.keys.filter(k => k.code !== code);
-    saveDB(db);
-    res.json({ success: true });
-});
-
-app.post('/admin/delete-user', (req, res) => {
-    const { name } = req.body;
-    const db = getDB();
-    delete db.users[name];
-    saveDB(db);
-    res.json({ success: true });
-});
-
-app.post('/admin/reset-user', (req, res) => {
-    const { name } = req.body;
-    const db = getDB();
-    if (db.users[name]) {
-        db.users[name].expiry = null;
-        saveDB(db);
+    try {
+        await Key.deleteOne({ code });
         res.json({ success: true });
-    } else {
-        res.status(404).json({ success: false, message: "User not found" });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+app.post('/admin/delete-user', async (req, res) => {
+    const { name } = req.body; // 'name' here is username based on old logic
+    try {
+        await User.deleteOne({ username: name });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+app.post('/admin/reset-user', async (req, res) => {
+    const { name } = req.body;
+    try {
+        const user = await User.findOne({ username: name });
+        if (user) {
+            user.expiry = null;
+            await user.save();
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ success: false, message: "User not found" });
+        }
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
     }
 });
 
 // --- Bot API (Trial Keys) ---
-app.post('/bot/generate-key', (req, res) => {
-    // For production, you should add an API_KEY check here for security
+app.post('/bot/generate-key', async (req, res) => {
     const type = '1Hour';
-    const db = getDB();
 
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let randomPart = '';
@@ -267,19 +286,21 @@ app.post('/bot/generate-key', (req, res) => {
     }
 
     const code = `BSP_${type}_${randomPart}`;
-    const newKey = {
-        code,
-        type,
-        max_activations: 1,
-        uses: 0,
-        active: true,
-        created_at: new Date().toISOString(),
-        source: 'telegram_bot_trial'
-    };
 
-    db.keys.push(newKey);
-    saveDB(db);
-    res.json({ success: true, key: newKey.code });
+    try {
+        const newKey = new Key({
+            code,
+            type,
+            max_activations: 1,
+            uses: 0,
+            active: true,
+            source: 'telegram_bot_trial'
+        });
+        await newKey.save();
+        res.json({ success: true, key: newKey.code });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
