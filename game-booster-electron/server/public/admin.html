@@ -401,10 +401,18 @@
         const API = ''; // Local calls
         let sessionToken = null;
 
+        async function authFetch(url, options = {}) {
+            if (!options.headers) options.headers = {};
+            if (sessionToken) {
+                options.headers['Authorization'] = `Bearer ${sessionToken}`;
+            }
+            return fetch(url, options);
+        }
+
         async function login() {
             const pass = document.getElementById('admin-pass').value;
             try {
-                const res = await fetch('/admin/login', {
+                const res = await authFetch('/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ pass })
@@ -423,81 +431,96 @@
         }
 
         async function refreshData() {
-            // Fetch Stats
-            const resStats = await fetch('/admin/stats');
-            const stats = await resStats.json();
-            document.getElementById('val-users').innerText = stats.totalUsers;
-            document.getElementById('val-keys').innerText = stats.totalKeys;
-            document.getElementById('val-activations').innerText = stats.totalActivations;
+            try {
+                // Fetch Stats
+                const resStats = await authFetch('/admin/stats');
+                if (resStats.status === 401) {
+                    logout();
+                    return;
+                }
+                const stats = await resStats.json();
+                document.getElementById('val-users').innerText = stats.totalUsers;
+                document.getElementById('val-keys').innerText = stats.totalKeys;
+                document.getElementById('val-activations').innerText = stats.totalActivations;
 
-            // Fetch Keys
-            const resKeys = await fetch('/admin/keys');
-            const keys = await resKeys.json();
-            const keysTable = document.getElementById('keys-table');
-            keysTable.innerHTML = '';
-            keys.reverse().forEach(k => {
-                const badgeClass = k.type.includes('Life') ? 'badge-life' : (k.type.includes('Hour') ? 'badge-hour' : 'badge-day');
-                const row = `
-                    <tr>
-                        <td style="font-family: monospace; color: var(--accent)">${k.code}</td>
-                        <td><span class="badge ${badgeClass}">${k.type}</span></td>
-                        <td>${k.uses} / ${k.max_activations}</td>
-                        <td style="color: ${k.active ? '#00ff88' : '#ff3333'}">${k.active ? 'ACTIVE' : 'USED'}</td>
-                        <td><button class="btn-delete" onclick="deleteKey('${k.code}')">DELETE</button></td>
-                    </tr>
-                `;
-                keysTable.innerHTML += row;
-            });
+                // Fetch Keys
+                const resKeys = await authFetch('/admin/keys');
+                const keys = await resKeys.json();
+                const keysTable = document.getElementById('keys-table');
+                keysTable.innerHTML = '';
+                keys.reverse().forEach(k => {
+                    const badgeClass = k.type.includes('Life') ? 'badge-life' : (k.type.includes('Hour') ? 'badge-hour' : 'badge-day');
+                    const row = `
+                        <tr>
+                            <td style="font-family: monospace; color: var(--accent)">${k.code}</td>
+                            <td><span class="badge ${badgeClass}">${k.type}</span></td>
+                            <td>${k.uses} / ${k.max_activations}</td>
+                            <td style="color: ${k.active ? '#00ff88' : '#ff3333'}">${k.active ? 'ACTIVE' : 'USED'}</td>
+                            <td><button class="btn-delete" onclick="deleteKey('${k.code}')">DELETE</button></td>
+                        </tr>
+                    `;
+                    keysTable.innerHTML += row;
+                });
 
-            // Fetch App Users
-            const resUsers = await fetch('/admin/users');
-            const users = await resUsers.json();
-            const usersTable = document.getElementById('users-table');
-            usersTable.innerHTML = '';
-            users.forEach(u => {
-                const expiry = u.expiry === 'lifetime' ? 'NEVER' : (u.expiry ? new Date(u.expiry).toLocaleString() : 'NONE');
-                const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Never';
-                const ip = u.ip || 'Unknown';
-                const isExpired = u.expiry !== 'lifetime' && u.expiry && (new Date() > new Date(u.expiry));
-                const status = u.expiry ? (isExpired ? 'EXPIRED' : 'ACTIVE') : 'NO LICENSE';
-                const row = `
-                    <tr>
-                        <td style="font-weight: bold; color: #fff;">${u.name}</td>
-                        <td style="font-family: monospace; color: var(--accent);">${ip}</td>
-                        <td style="font-size: 11px; color: var(--text-dim);">${lastLogin}</td>
-                        <td>${expiry}</td>
-                        <td style="color: ${status === 'ACTIVE' ? '#00ff88' : '#ff3333'}">${status}</td>
-                        <td>
-                            <button class="btn-delete" style="border-color: #ff9900; color: #ff9900; margin-right: 5px;" onclick="resetUser('${u.name}')">RESET</button>
-                            <button class="btn-delete" onclick="deleteUser('${u.name}')">DELETE</button>
-                        </td>
-                    </tr>
-                `;
-                usersTable.innerHTML += row;
-            });
+                // Fetch App Users
+                const resUsers = await authFetch('/admin/users');
+                const users = await resUsers.json();
+                const usersTable = document.getElementById('users-table');
+                usersTable.innerHTML = '';
+                users.forEach(u => {
+                    const expiry = u.expiry === 'lifetime' ? 'NEVER' : (u.expiry ? new Date(u.expiry).toLocaleString() : 'NONE');
+                    const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Never';
+                    const ip = u.ip || 'Unknown';
+                    const isExpired = u.expiry !== 'lifetime' && u.expiry && (new Date() > new Date(u.expiry));
+                    const status = u.expiry ? (isExpired ? 'EXPIRED' : 'ACTIVE') : 'NO LICENSE';
+                    const row = `
+                        <tr>
+                            <td style="font-weight: bold; color: #fff;">${u.name}</td>
+                            <td style="font-family: monospace; color: var(--accent);">${ip}</td>
+                            <td style="font-size: 11px; color: var(--text-dim);">${lastLogin}</td>
+                            <td>${expiry}</td>
+                            <td style="color: ${status === 'ACTIVE' ? '#00ff88' : '#ff3333'}">${status}</td>
+                            <td>
+                                <button class="btn-delete" style="border-color: #ff9900; color: #ff9900; margin-right: 5px;" onclick="resetUser('${u.name}')">RESET</button>
+                                <button class="btn-delete" onclick="deleteUser('${u.name}')">DELETE</button>
+                            </td>
+                        </tr>
+                    `;
+                    usersTable.innerHTML += row;
+                });
 
-            // Fetch Bot Users
-            const resBot = await fetch('/admin/bot-users');
-            const botUsers = await resBot.json();
-            const botTable = document.getElementById('bot-users-table');
-            botTable.innerHTML = '';
-            botUsers.reverse().forEach(u => {
-                const lastSeen = new Date(u.lastSeen).toLocaleString();
-                const row = `
-                    <tr>
-                        <td style="font-family: monospace; color: var(--text-dim);">${u.id}</td>
-                        <td style="color: var(--accent);">@${u.username}</td>
-                        <td>${u.name}</td>
-                        <td style="font-size: 11px; color: var(--text-dim);">${lastSeen}</td>
-                    </tr>
-                `;
-                botTable.innerHTML += row;
-            });
+                // Fetch Bot Users
+                const resBot = await authFetch('/admin/bot-users');
+                const botUsers = await resBot.json();
+                const botTable = document.getElementById('bot-users-table');
+                botTable.innerHTML = '';
+                botUsers.reverse().forEach(u => {
+                    const lastSeen = new Date(u.lastSeen).toLocaleString();
+                    const row = `
+                        <tr>
+                            <td style="font-family: monospace; color: var(--text-dim);">${u.id}</td>
+                            <td style="color: var(--accent);">@${u.username}</td>
+                            <td>${u.name}</td>
+                            <td style="font-size: 11px; color: var(--text-dim);">${lastSeen}</td>
+                        </tr>
+                    `;
+                    botTable.innerHTML += row;
+                });
+            } catch (e) {
+                console.error("Refresh error:", e);
+            }
+        }
+
+        function logout() {
+            sessionToken = null;
+            document.getElementById('login-overlay').style.display = 'flex';
+            document.getElementById('admin-pass').value = '';
+            document.getElementById('login-error').innerText = "Session expired or invalid";
         }
 
         async function resetUser(name) {
             if (!confirm(`Reset subscription for ${name}?`)) return;
-            await fetch('/admin/reset-user', {
+            await authFetch('/admin/reset-user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name })
@@ -507,7 +530,7 @@
 
         async function deleteUser(name) {
             if (!confirm(`Delete user ${name} permanently?`)) return;
-            await fetch('/admin/delete-user', {
+            await authFetch('/admin/delete-user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name })
@@ -519,7 +542,7 @@
             const type = document.getElementById('gen-type').value;
             const maxActivations = document.getElementById('gen-uses').value;
 
-            const res = await fetch('/admin/generate-key', {
+            const res = await authFetch('/admin/generate-key', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type, maxActivations })
@@ -534,7 +557,7 @@
 
         async function deleteKey(code) {
             if (!confirm(`Delete key ${code}?`)) return;
-            await fetch('/admin/delete-key', {
+            await authFetch('/admin/delete-key', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code })

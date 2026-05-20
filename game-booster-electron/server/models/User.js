@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema({
     expiry: { type: mongoose.Schema.Types.Mixed, default: null }, // Date string or "lifetime"
     usedKey: { type: String, default: null },
     lastLogin: { type: Date, default: null },
-    ip: { type: String, default: null }
+    ip: { type: String, default: null },
+    sessionToken: { type: String, default: null }
 });
 
 module.exports = mongoose.model('User', userSchema);

@@ -11,7 +11,34 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 const MONGO_URI = process.env.MONGO_URI;
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'cb_sec_a8b92d8e4f5a1c0d3e2b1029384756';
 const BotUser = require('./models/BotUser');
+
+const activeAdminSessions = new Set();
+
+function authenticateAdmin(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, message: 'Unauthorized: Missing Admin Token' });
+    }
+    const token = authHeader.split(' ')[1];
+    if (activeAdminSessions.has(token)) {
+        return next();
+    }
+    return res.status(401).json({ success: false, message: 'Unauthorized: Invalid Admin Token' });
+}
+
+function authenticateInternal(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, message: 'Unauthorized: Missing Internal Key' });
+    }
+    const token = authHeader.split(' ')[1];
+    if (token === INTERNAL_API_KEY) {
+        return next();
+    }
+    return res.status(401).json({ success: false, message: 'Unauthorized: Invalid Internal Key' });
+}
 
 // Connect to MongoDB
 mongoose.connect(MONGO_URI)
@@ -77,10 +104,54 @@ app.post('/login', async (req, res) => {
 
         userData.lastLogin = new Date();
         userData.ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const token = require('crypto').randomBytes(32).toString('hex');
+        userData.sessionToken = token;
         await userData.save();
 
-        const token = require('crypto').randomBytes(32).toString('hex');
         res.json({ success: true, active, reason, token, expiry: userData.expiry });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+app.post('/verify-session', async (req, res) => {
+    const { user, token } = req.body;
+    try {
+        const userData = await User.findOne({ username: user });
+        if (!userData || userData.sessionToken !== token) {
+            return res.json({ success: false, message: "Invalid session" });
+        }
+
+        let active = true;
+        let reason = null;
+
+        // Check if key exists
+        if (userData.usedKey) {
+            const keyExists = await Key.findOne({ code: userData.usedKey });
+            if (!keyExists) {
+                userData.expiry = null;
+                userData.usedKey = null;
+                userData.sessionToken = null;
+                await userData.save();
+                active = false;
+                reason = "revoked";
+            }
+        }
+
+        if (active && userData.expiry !== "lifetime") {
+            if (!userData.expiry) {
+                active = false;
+                reason = "missing";
+            } else {
+                const expiry = new Date(userData.expiry);
+                if (new Date() > expiry) {
+                    active = false;
+                    reason = "expired";
+                }
+            }
+        }
+
+        res.json({ success: true, active, reason, expiry: userData.expiry });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
     }
@@ -116,6 +187,8 @@ app.post('/activate', async (req, res) => {
 
         userData.expiry = expiryDate;
         userData.usedKey = key;
+        const token = require('crypto').randomBytes(32).toString('hex');
+        userData.sessionToken = token;
         await userData.save();
 
         keyData.uses++;
@@ -124,7 +197,7 @@ app.post('/activate', async (req, res) => {
         }
         await keyData.save();
 
-        res.json({ success: true, expiry: expiryDate });
+        res.json({ success: true, expiry: expiryDate, token });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
     }
@@ -132,9 +205,15 @@ app.post('/activate', async (req, res) => {
 
 app.get('/status/:user', async (req, res) => {
     const { user } = req.params;
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.json({ expiry: null });
+    }
+    const token = authHeader.split(' ')[1];
+
     try {
         const userData = await User.findOne({ username: user });
-        if (!userData || !userData.expiry) {
+        if (!userData || !userData.expiry || userData.sessionToken !== token) {
             return res.json({ expiry: null });
         }
 
@@ -142,6 +221,7 @@ app.get('/status/:user', async (req, res) => {
             const keyExists = await Key.findOne({ code: userData.usedKey });
             if (!keyExists) {
                 userData.expiry = null;
+                userData.sessionToken = null;
                 await userData.save();
                 return res.json({ expiry: null });
             }
@@ -154,7 +234,7 @@ app.get('/status/:user', async (req, res) => {
 
 // --- Admin Routes ---
 // --- Admin/Bot Routes ---
-app.post('/admin/sync-bot-users', async (req, res) => {
+app.post('/admin/sync-bot-users', authenticateInternal, async (req, res) => {
     const { userId, username, first_name, last_name, referrerId } = req.body;
     try {
         let user = await BotUser.findOne({ userId });
@@ -187,7 +267,7 @@ app.post('/admin/sync-bot-users', async (req, res) => {
     }
 });
 
-app.post('/bot/purchase-success', async (req, res) => {
+app.post('/bot/purchase-success', authenticateInternal, async (req, res) => {
     const { userId, amount } = req.body; // amount in Stars
     try {
         const user = await BotUser.findOne({ userId });
@@ -208,7 +288,7 @@ app.post('/bot/purchase-success', async (req, res) => {
     }
 });
 
-app.post('/bot/get-profile', async (req, res) => {
+app.post('/bot/get-profile', authenticateInternal, async (req, res) => {
     const { userId } = req.body;
     try {
         const user = await BotUser.findOne({ userId });
@@ -216,7 +296,7 @@ app.post('/bot/get-profile', async (req, res) => {
     } catch (e) { res.json({}); }
 });
 
-app.post('/bot/claim-reward', async (req, res) => {
+app.post('/bot/claim-reward', authenticateInternal, async (req, res) => {
     const { userId } = req.body;
     try {
         const user = await BotUser.findOne({ userId });
@@ -249,7 +329,7 @@ app.post('/bot/claim-reward', async (req, res) => {
 });
 
 // --- Admin Routes ---
-app.get('/admin/users', async (req, res) => {
+app.get('/admin/users', authenticateAdmin, async (req, res) => {
     try {
         const users = await User.find({}, 'username ip lastLogin expiry usedKey');
         res.json(users);
@@ -258,7 +338,7 @@ app.get('/admin/users', async (req, res) => {
     }
 });
 
-app.get('/admin/bot-users', async (req, res) => {
+app.get('/admin/bot-users', authenticateAdmin, async (req, res) => {
     try {
         const users = await BotUser.find({});
         res.json(users);
@@ -270,13 +350,15 @@ app.get('/admin/bot-users', async (req, res) => {
 app.post('/admin/login', (req, res) => {
     const { pass } = req.body;
     if (pass === ADMIN_PASSWORD) {
-        res.json({ success: true, token: 'admin-session-token' });
+        const token = require('crypto').randomBytes(32).toString('hex');
+        activeAdminSessions.add(token);
+        res.json({ success: true, token });
     } else {
         res.status(401).json({ success: false, message: 'Invalid Admin Password' });
     }
 });
 
-app.get('/admin/stats', async (req, res) => {
+app.get('/admin/stats', authenticateAdmin, async (req, res) => {
     try {
         const totalUsers = await User.countDocuments({});
         const totalKeys = await Key.countDocuments({});
@@ -292,7 +374,7 @@ app.get('/admin/stats', async (req, res) => {
     }
 });
 
-app.get('/admin/keys', async (req, res) => {
+app.get('/admin/keys', authenticateAdmin, async (req, res) => {
     try {
         const keys = await Key.find({});
         res.json(keys);
@@ -301,7 +383,7 @@ app.get('/admin/keys', async (req, res) => {
     }
 });
 
-app.post('/admin/generate-key', async (req, res) => {
+app.post('/admin/generate-key', authenticateAdmin, async (req, res) => {
     const { type, maxActivations } = req.body;
 
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -328,7 +410,7 @@ app.post('/admin/generate-key', async (req, res) => {
     }
 });
 
-app.post('/admin/delete-key', async (req, res) => {
+app.post('/admin/delete-key', authenticateAdmin, async (req, res) => {
     const { code } = req.body;
     try {
         await Key.deleteOne({ code });
@@ -338,7 +420,7 @@ app.post('/admin/delete-key', async (req, res) => {
     }
 });
 
-app.post('/admin/delete-user', async (req, res) => {
+app.post('/admin/delete-user', authenticateAdmin, async (req, res) => {
     const { name } = req.body; // 'name' here is username based on old logic
     try {
         await User.deleteOne({ username: name });
@@ -348,7 +430,7 @@ app.post('/admin/delete-user', async (req, res) => {
     }
 });
 
-app.post('/admin/reset-user', async (req, res) => {
+app.post('/admin/reset-user', authenticateAdmin, async (req, res) => {
     const { name } = req.body;
     try {
         const user = await User.findOne({ username: name });
@@ -365,7 +447,7 @@ app.post('/admin/reset-user', async (req, res) => {
 });
 
 // --- Bot API (Trial Keys) ---
-app.post('/bot/generate-key', async (req, res) => {
+app.post('/bot/generate-key', authenticateInternal, async (req, res) => {
     const type = '1Hour';
 
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
